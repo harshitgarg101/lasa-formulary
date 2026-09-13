@@ -1,0 +1,3571 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Formulary look-alike screen</title>
+<!-- §1: no network request. A browser asks for /favicon.ico by default on any
+     hosted document, and an empty inline icon is what stops it. The rating
+     app's consent screen promised no network connection and a favicon request
+     — invisible in every local check — broke that promise on the live page. -->
+<link rel="icon" href="data:,">
+<!--
+  Assembled by scripts/build_formulary_tool.py. Do not edit web/formulary.html;
+  edit this template and rebuild, or the next build silently discards the edit.
+
+  This file loads nothing. No dataset, no fonts, no scripts, no styles: the
+  page is one document and `performance.getEntriesByType('resource')` returns
+  an empty array. That is not a preference — a hospital formulary is
+  commercially sensitive, the page promises the file never leaves the browser,
+  and a promise a page makes has to be true of the served document.
+-->
+<style>
+  /* DESIGN.md, which FORMULARY_TOOL.md A6.10 and E4 extend to this page: ten
+     colour tokens, six sizes, three weights, eight spacing steps, one radius,
+     no shadows, no serif, no webfont, no dark mode. Asserted against the
+     computed styles of the rendered page at 1280px and 360px, so a value
+     added here that is not on the scale fails the suite. */
+  :root {
+    /* §2 — the palette, exact. Ten values; §2's own "eleven" is amended. */
+    --bg: #FFFFFF;
+    --surface: #F6F7F8;
+    --border: #E3E5E8;
+    --border-strong: #C9CDD2;
+    --ink: #14171A;
+    --ink-2: #5B6169;
+    /* §14 — 3.22:1 on --bg and 3.00:1 on --surface. It carries no text
+       anywhere on this page. Defined, because removing it would change the
+       palette count a second time. */
+    --ink-3: #8A9099;
+    --accent: #1A3D8F;
+    --positive: #0F6E4F;
+    --negative: #A33A2A;
+
+    /* §3 — two stacks, no serif anywhere */
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+            "Helvetica Neue", Arial, sans-serif;
+    --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas,
+            "Liberation Mono", monospace;
+
+    /* §3 — six sizes */
+    --t-xs: 12px; --t-sm: 13px; --t-base: 15px;
+    --t-lg: 18px; --t-xl: 22px; --t-name: 28px;
+
+    /* §4 — 4px base, eight steps */
+    --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px;
+    --s5: 24px; --s6: 32px; --s7: 48px; --s8: 64px;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: var(--t-base);
+    line-height: 1.6;
+    font-weight: 400;
+  }
+
+  /* §3 — three weights. The user agent gives <b>, <strong> and <th> 700. */
+  b, strong, th { font-weight: 500; }
+  h1 b, h2 b, h3 b, p b, li b, td b, dt b { font-weight: 600; }
+
+  /* §6 — one column, 920px, centred in the viewport, left-aligned within.
+     Flex centring rather than `margin: 0 auto`, which resolves to whatever
+     half the leftover viewport is and would not be on the 4px scale. */
+  body { display: flex; justify-content: center; }
+  main { width: 100%; max-width: 920px; padding: var(--s6); text-align: left; }
+  @media (max-width: 640px) { main { padding: var(--s4); } }
+
+  section { margin: 0 0 var(--s8); }
+  h1, h2, h3, p, ul, ol, table, nav, div, dl { margin-top: 0; }
+
+  h1 { font-size: var(--t-xl); line-height: 1.3; font-weight: 600;
+       margin-bottom: var(--s2); }
+  h2 { font-size: var(--t-lg); line-height: 1.4; font-weight: 600;
+       margin: var(--s6) 0 var(--s4); }
+  h3 { font-size: var(--t-base); line-height: 1.6; font-weight: 600;
+       margin: var(--s5) 0 var(--s2); }
+
+  p, li { max-width: 68ch; }
+  p { margin-bottom: var(--s4); }
+  p:last-child { margin-bottom: 0; }
+  ul, ol { margin-bottom: var(--s4); padding-left: var(--s5); }
+  li { margin-bottom: var(--s2); }
+
+  a { color: var(--accent); }
+  a:focus-visible, button:focus-visible, input:focus-visible,
+  select:focus-visible, textarea:focus-visible, summary:focus-visible,
+  [tabindex]:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  .muted { color: var(--ink-2); }
+  .meta { color: var(--ink-2); font-size: var(--t-xs); line-height: 1.4; }
+  .mono { font-family: var(--mono); }
+  .n { font-variant-numeric: tabular-nums; }
+
+  /* §5 — one radius, one border, no shadows */
+  .panel {
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: var(--surface);
+    padding: var(--s4);
+    margin-bottom: var(--s5);
+  }
+  .panel p, .panel li { font-size: var(--t-sm); line-height: 1.5; }
+  .panel > :last-child { margin-bottom: 0; }
+
+  nav { display: flex; gap: var(--s2); flex-wrap: wrap;
+        margin-bottom: var(--s5); }
+  nav button[aria-selected="true"] {
+    border-color: var(--border-strong);
+    background: var(--surface);
+    color: var(--ink);
+    font-weight: 500;
+  }
+
+  /* §8 — 120ms, three properties, nothing else. No entrance animation, no
+     hover transform. */
+  button, input[type=text], input[type=file], select, textarea {
+    font-family: var(--sans);
+    font-size: var(--t-sm);
+    line-height: 1.5;
+    font-weight: 500;
+    color: var(--ink);
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: var(--s2) var(--s3);
+    transition: background-color 120ms ease-out, border-color 120ms ease-out,
+                opacity 120ms ease-out;
+  }
+  button { cursor: pointer; }
+  button:hover { background: var(--surface); }
+  button[disabled] { color: var(--ink-3); cursor: default; }
+  button.primary { border-color: var(--border-strong); background: var(--surface); }
+  textarea {
+    font-family: var(--mono); font-weight: 400; width: 100%;
+    background: var(--surface); min-height: 160px; resize: vertical;
+  }
+  select { background: var(--surface); font-weight: 400; }
+  input[type=file] { background: var(--surface); font-weight: 400; width: 100%; }
+  input[type=text]:focus, textarea:focus, select:focus {
+    border-color: var(--border-strong);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    button, input[type=text], input[type=file], select, textarea { transition: none; }
+  }
+
+  .row { display: flex; gap: var(--s3); flex-wrap: wrap; align-items: center; }
+  .grow { flex: 1 1 240px; }
+
+  /* §6 — no vertical rules, no outer border, one rule under the header */
+  table {
+    border-collapse: collapse; width: 100%;
+    font-size: var(--t-sm); line-height: 1.5; margin-bottom: var(--s4);
+  }
+  th { text-align: left; font-weight: 500; color: var(--ink-2);
+       border-bottom: 1px solid var(--border); padding: var(--s2); }
+  td { padding: var(--s2); text-align: left; vertical-align: top; border: 0; }
+  tbody tr:nth-child(even) { background: var(--surface); }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .scroll { overflow-x: auto; }
+
+  /* ------------------------------------------------ the Tall Man rendering
+     §A3: lead with it, large, monospaced. It is the fast answer, it is what
+     goes on a label, and it claims nothing the data cannot support. This is
+     the one element allowed to be assertive; everything around it stays
+     quiet so it reads. */
+  .tallman {
+    font-family: var(--mono);
+    font-size: var(--t-name);
+    line-height: 1.1;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    margin: 0 0 var(--s3);
+  }
+  .tallman div { white-space: nowrap; }
+  .tallman-scroll { overflow-x: auto; }
+  .no-rendering {
+    font-size: var(--t-sm); color: var(--ink-2); line-height: 1.5;
+    margin: 0 0 var(--s3); max-width: 68ch;
+  }
+  .rendering-source {
+    font-size: var(--t-xs); color: var(--ink-2); line-height: 1.4;
+    margin: 0 0 var(--s3);
+  }
+
+  /* ------------------------------------------------------------- the chips
+     Factual, glanceable, no danger language. Deliberately one appearance:
+     colour-coding them by kind would be a severity ramp arriving by the back
+     door, and nothing here ranks. */
+  .chips { display: flex; flex-wrap: wrap; gap: var(--s2); margin: 0 0 var(--s3); }
+  .chip {
+    font-size: var(--t-xs); line-height: 1.4; font-weight: 400;
+    color: var(--ink); background: var(--bg);
+    border: 1px solid var(--border); border-radius: 4px;
+    padding: var(--s1) var(--s2);
+  }
+  .chip .inferred { color: var(--ink-2); }
+
+  .pair {
+    border-bottom: 1px solid var(--border);
+    padding: var(--s5) 0;
+  }
+  .pair:last-child { border-bottom: 0; }
+  .pair-id { font-size: var(--t-xs); color: var(--ink-2); line-height: 1.4;
+             margin: 0 0 var(--s2); }
+
+  details { margin-bottom: var(--s2); }
+  summary { font-size: var(--t-sm); color: var(--accent); cursor: pointer;
+            line-height: 1.5; }
+  details[open] summary { margin-bottom: var(--s3); }
+
+  /* §10 — signed contributions, from a centre baseline */
+  .contribution { display: flex; align-items: center; gap: var(--s2);
+                  margin-bottom: var(--s1); font-size: var(--t-sm);
+                  line-height: 1.5; }
+  .contribution .label { width: 128px; color: var(--ink-2); }
+  .contribution .value { width: 64px; font-family: var(--mono);
+                         font-variant-numeric: tabular-nums; }
+  .bar { position: relative; flex: 1 1 120px; height: 8px; }
+  .bar span { position: absolute; top: 0; height: 8px; }
+  .bar .pos { left: 50%; background: var(--positive); }
+  .bar .neg { right: 50%; background: var(--negative); }
+  .bar .axis { left: 50%; width: 1px; height: 8px; background: var(--border-strong); }
+
+  .hidden { display: none; }
+
+  .progress { height: 8px; background: var(--surface);
+              border: 1px solid var(--border); border-radius: 4px;
+              overflow: hidden; margin-bottom: var(--s2); max-width: 68ch; }
+  .progress span { display: block; height: 100%; background: var(--accent);
+                   width: 0; }
+
+  .banner {
+    border: 1px solid var(--border-strong);
+    border-radius: 4px;
+    padding: var(--s3) var(--s4);
+    margin-bottom: var(--s5);
+    font-size: var(--t-sm);
+    line-height: 1.5;
+  }
+  .banner b { font-weight: 600; }
+
+  dl.facts { margin-bottom: var(--s4); }
+  dl.facts div { display: flex; gap: var(--s3); flex-wrap: wrap;
+                 border-bottom: 1px solid var(--border); padding: var(--s2) 0; }
+  dl.facts dt { width: 240px; color: var(--ink-2); font-size: var(--t-sm);
+                line-height: 1.5; margin: 0; }
+  dl.facts dd { margin: 0; font-size: var(--t-sm); line-height: 1.5;
+                flex: 1 1 200px; }
+
+  /* ============================================================== printing
+     A4: the deliverable is the sheet, and the web page is how you get it.
+     Australia's Tall Man list works because it can be pinned to a wall.
+
+     The printed pages are built as real elements rather than left to the
+     browser to break where it likes. "The caveat on every page" and "no pair
+     split across a page break" are then properties of the document, which a
+     test can read — rather than properties of a rendering nobody checked.
+     Every `.sheet-page` carries its own caveat and its own footer. */
+  .printable { display: none; }
+
+  @media print {
+    @page { size: A4 portrait; margin: 12mm; }
+    body { display: block; }
+    main { display: none; }
+    .printable { display: block; }
+    html, body, .printable { background: #FFFFFF; color: var(--ink); }
+    .sheet-page {
+      break-after: page;
+      page-break-after: always;
+      break-inside: avoid;
+      display: flex;
+      flex-direction: column;
+      /* A4 minus the 12mm margins, in the units @page uses. */
+      height: 273mm;
+    }
+    .sheet-page:last-child { break-after: auto; page-break-after: auto; }
+  }
+
+  /* Shown on screen too, so the sheet can be checked without a printer and
+     so the harness reads the same elements the printer does. */
+  .preview .printable { display: block; }
+  .preview main { display: none; }
+
+  .sheet-page { border: 0; background: #FFFFFF; padding: 0; }
+  .sheet-head { border-bottom: 1px solid var(--border); padding-bottom: var(--s2);
+                margin-bottom: var(--s4); }
+  .sheet-head h2 { font-size: var(--t-lg); margin: 0 0 var(--s1); }
+  .sheet-caveat {
+    font-size: var(--t-xs); line-height: 1.4; color: var(--ink);
+    border: 1px solid var(--border-strong); border-radius: 4px;
+    padding: var(--s2); margin-bottom: var(--s4);
+  }
+  .sheet-body { flex: 1 1 auto; }
+  .sheet-block {
+    break-inside: avoid; page-break-inside: avoid;
+    padding: var(--s3) 0; border-bottom: 1px solid var(--border);
+  }
+  .sheet-block .tallman { font-size: var(--t-name); margin-bottom: var(--s2); }
+  .sheet-block .plain-chips { font-size: var(--t-xs); line-height: 1.4;
+                              color: var(--ink); margin: 0; }
+  .sheet-foot { border-top: 1px solid var(--border); padding-top: var(--s2);
+                font-size: var(--t-xs); line-height: 1.4; color: var(--ink); }
+
+  .label-grid { display: flex; flex-direction: column; }
+  .label-strip {
+    break-inside: avoid; page-break-inside: avoid;
+    border-bottom: 1px dashed var(--border-strong);
+    padding: var(--s3) 0;
+  }
+  .label-strip .tallman { margin: 0; }
+  .label-cut { font-size: var(--t-xs); color: var(--ink-2); line-height: 1.4; }
+</style>
+
+<main>
+  <!-- §13: the research-prototype banner, on every view. -->
+  <div class="banner" id="banner">
+    <b>Research prototype.</b> This finds pairs of names in your stock list
+    that a string screen scores as similar. It does not say how dangerous any
+    pair is, and it has never been used in a clinical setting or approved by
+    any institution. Every pair it returns needs a pharmacist to look at it.
+    <a href="#method" id="banner-method">What this does and does not do</a>.
+  </div>
+
+  <h1>Look-alike names in your own formulary</h1>
+  <p class="muted" id="intro">
+    Upload your stock list. The screen runs in this page, on your computer:
+    nothing is uploaded, stored or transmitted, and the page makes no network
+    connection of any kind.
+  </p>
+  <p class="meta" id="audience">
+    For a hospital pharmacy, a formulary committee or a medication-safety
+    group. Not for patients, and not a substitute for clinical judgement.
+  </p>
+
+  <nav id="nav" role="tablist" aria-label="Sections">
+    <button id="tab-screen" role="tab" aria-selected="true" aria-controls="view-screen">Screen a formulary</button>
+    <button id="tab-method" role="tab" aria-selected="false" aria-controls="view-method">Method and limits</button>
+  </nav>
+
+  <!-- ============================================================ screen -->
+  <section id="view-screen" role="tabpanel" aria-labelledby="tab-screen">
+
+    <div id="step-input">
+      <h2>1. Your stock list</h2>
+      <p>
+        A CSV, TSV, Excel workbook or plain text file with one column of
+        product names. Everything else is optional and used if present:
+        ingredient, strength, dosage form, route, manufacturer, storage
+        location, ATC code.
+      </p>
+      <div class="panel">
+        <p><b>Nothing leaves this page.</b> The file is read and screened by
+        this document in your browser. It is not sent anywhere, and this page
+        has no server to send it to. A formulary is commercially sensitive and
+        that is the reason this tool works the way it does.</p>
+      </div>
+      <div class="row">
+        <div class="grow">
+          <label class="meta" for="file">Choose a file</label>
+          <input type="file" id="file" accept=".csv,.tsv,.txt,.xlsx">
+        </div>
+      </div>
+      <h3>Or paste a list</h3>
+      <p class="meta">One product per line, or paste a whole spreadsheet with
+      its header row.</p>
+      <textarea id="paste" spellcheck="false" aria-label="Paste your stock list"></textarea>
+      <div class="row" style="margin-top: var(--s3)">
+        <button id="read-paste" class="primary">Read the pasted list</button>
+        <button id="load-example">Load a small example</button>
+      </div>
+      <p class="meta" id="input-problem" role="status"></p>
+    </div>
+
+    <div id="step-mapping" class="hidden">
+      <h2>2. Check the columns</h2>
+      <p id="mapping-summary"></p>
+      <p class="meta">
+        These are inferred from your header row. Correct anything that is
+        wrong before running — the screen uses what you confirm here, not what
+        it guessed.
+      </p>
+      <div class="scroll"><table id="mapping-table">
+        <thead><tr><th>Field</th><th>Column in your file</th><th>First value</th></tr></thead>
+        <tbody></tbody>
+      </table></div>
+      <div class="row">
+        <button id="run" class="primary">Run the screen</button>
+        <button id="back-to-input">Choose a different file</button>
+      </div>
+      <p class="meta" id="mapping-problem" role="status"></p>
+    </div>
+
+    <div id="step-working" class="hidden">
+      <h2>Screening</h2>
+      <div class="progress"><span id="progress-bar"></span></div>
+      <p class="meta" id="progress-text" role="status"></p>
+    </div>
+
+    <!-- A2: report what could not be matched, before results appear. A
+         silently reduced analysis is this project's oldest failure, so this
+         is a step the reader passes through rather than a note under the
+         results. -->
+    <div id="step-completeness" class="hidden">
+      <h2>3. What your file did and did not carry</h2>
+      <p id="completeness-lead"></p>
+      <div class="scroll"><table id="completeness-table">
+        <thead><tr><th>Field</th><th class="num">Present</th><th class="num">Absent</th><th>What is affected</th></tr></thead>
+        <tbody></tbody>
+      </table></div>
+      <div class="panel" id="no-reference-note">
+        <p><b>This tool ships no drug dictionary.</b> It knows only what your
+        file says. Where your file gives no ingredient and no ATC code, no
+        ingredient or ATC code is inferred and the facts that depend on them
+        are simply absent — they are not guessed. Dosage form and route are
+        read from the words in your own product names where you have not given
+        a column for them, and anything read that way is marked
+        <span class="chip"><span class="inferred">inferred</span></span>.</p>
+      </div>
+      <div class="row">
+        <button id="show-results" class="primary">Show the pairs</button>
+      </div>
+    </div>
+
+    <div id="step-results" class="hidden">
+      <h2>4. The pairs in your formulary</h2>
+      <p id="results-lead"></p>
+      <div class="row">
+        <label class="meta" for="sort">Sort by</label>
+        <select id="sort">
+          <option value="score">Score</option>
+          <option value="name">Name</option>
+          <option value="location">Shared storage location</option>
+        </select>
+        <button id="export-csv">Download CSV</button>
+        <button id="open-sheet">Printable sheet</button>
+        <button id="open-labels">Shelf-label strip</button>
+      </div>
+      <div class="row" style="margin-top: var(--s3)">
+        <label class="meta" for="previous">Compare with a previous export</label>
+        <input type="file" id="previous" accept=".csv" style="max-width: 320px">
+      </div>
+      <div id="diff" class="panel hidden"></div>
+      <div id="sections"></div>
+    </div>
+  </section>
+
+  <!-- ============================================================ method -->
+  <section id="view-method" class="hidden" role="tabpanel" aria-labelledby="tab-method">
+    <h2 id="method">What this tool does, and what it does not</h2>
+    <p>
+      It compares every pair of names in the list you gave it on five string
+      metrics, and reports the pairs that score above a fixed floor. That is
+      the whole of it. It produces <b>candidates for expert review</b>, not
+      risk assessments, and the reason is not caution for its own sake.
+    </p>
+
+    <h3>Why there is no verdict here</h3>
+    <p id="method-auc"></p>
+    <p id="method-inversion"></p>
+    <p id="method-survey"></p>
+    <p>
+      So there is no validated basis for saying how dangerous a pair is, and
+      the failure would not be symmetric. A pair wrongly marked as nothing to
+      worry about tells a pharmacist to stop worrying about something they
+      should worry about. A pair with no verdict on it at all tells them only
+      to look, which is what this tool is for.
+    </p>
+
+    <h3>Tall Man lettering</h3>
+    <p id="method-tallman"></p>
+    <p>
+      Published Tall Man lists capitalise the segment a human judged to
+      <i>distinguish</i> the two names. A character rule capitalises the
+      segment that <i>differs</i>. Those are not the same judgement, and the
+      gap between them is what the agreement figure measures. Where ISMP
+      publishes a rendering for a pair, this page shows ISMP's and says so.
+      Where it does not, the computed rendering is labelled as computed.
+    </p>
+
+    <h3>What the ATC facts mean</h3>
+    <p>
+      <span class="chip">Different body systems</span> compares the first
+      character of the two ATC codes you supplied. It answers "are these
+      different drugs", not "do they do different things" — prazosin and
+      terazosin are both alpha-1 blockers and diverge only by indication.
+    </p>
+    <p id="method-atc"></p>
+
+    <h3>What a string metric cannot reach</h3>
+    <p id="method-scope"></p>
+
+    <h3>Facts this tool cannot state</h3>
+    <p>
+      FORMULARY_TOOL.md specifies a fact chip reading "on ISMP's high-alert
+      list". <b>There is no high-alert list in this project</b>, and writing
+      one from memory would be inventing reference data. That chip is
+      therefore absent rather than approximated. Ingredient and ATC inference
+      is absent for a different reason: it needs a reference dictionary, and
+      the licence covering the dataset this project was built from is
+      unresolved, so nothing derived from it is shipped here.
+    </p>
+
+    <h3>Standing</h3>
+    <p>
+      <b>This tool has never been used in a clinical setting and has no
+      institutional approval.</b> It is a research prototype from a project
+      whose main result is a negative one.
+    </p>
+    <dl class="facts" id="method-figures"></dl>
+  </section>
+
+  <p class="meta" id="build-line"></p>
+</main>
+
+<!-- The printed artefacts. Built as real pages so that "the caveat is on
+     every page" and "no pair is split across a page break" are properties of
+     the document rather than hopes about a renderer. -->
+<div class="printable" id="printable" aria-hidden="true"></div>
+
+<script>
+/*
+ * The five similarity metrics, in the browser. (BUILD.md G1)
+ *
+ * Both tools score names in JavaScript; the report scores them in Python. If
+ * the two drift, the tools and the report disagree silently and the first
+ * person to notice is a pharmacist rather than a test. `web/parity.html`
+ * checks every function here against `data/reference/parity_sample.json`,
+ * which is 500 pairs with their Python values, produced by a committed script.
+ *
+ * These are ports of specific implementations, not of the published
+ * algorithms:
+ *
+ *   lev      rapidfuzz Levenshtein.normalized_similarity
+ *   jw       rapidfuzz JaroWinkler.similarity (prefix weight 0.1, cap 4,
+ *            boost only above 0.7 -- measured, not assumed)
+ *   dice     lasa.similarity.bigram_dice, an unpadded bigram multiset
+ *   dmeta    the `metaphone` package's doublemetaphone, scored by SPEC S7
+ *   soundex  jellyfish.soundex
+ *
+ * Where the Python implementation has a quirk, the quirk is reproduced: the
+ * point is agreement with what the report computed, not with a textbook. Two
+ * are worth naming, because they look like bugs and are load-bearing for
+ * parity. Double Metaphone's `next` is instance state, so a branch that falls
+ * through without setting it reuses the *previous* letter's instruction --
+ * which is what happens to every digit and punctuation mark in a name, and
+ * this dataset has plenty of both. And its buffer is padded at both ends, so
+ * a slice that runs off the front is an empty string rather than an error;
+ * JavaScript's String.slice already treats negative indices the same way
+ * Python does, which is why the ported slices are left as they are.
+ */
+(function (global) {
+  'use strict';
+
+  var VOWELS = 'AEIOUY';
+  var SILENT_STARTERS = ['GN', 'KN', 'PN', 'WR', 'PS'];
+
+  function isVowel(ch) { return ch !== '' && VOWELS.indexOf(ch) !== -1; }
+  function inList(value, list) { return list.indexOf(value) !== -1; }
+
+  /* ---------------------------------------------------------------- text */
+
+  /** Uppercase, accents stripped -- the `Word` normalisation, not the
+   *  pipeline's name normalisation, which is a different thing entirely. */
+  function foldForPhonetics(text) {
+    var decoded = String(text).replace(/Ç/g, 's').replace(/ç/g, 's');
+    return decoded.normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase();
+  }
+
+  /* -------------------------------------------------------- levenshtein */
+
+  function levenshtein(a, b) {
+    if (a === b) return 0;
+    if (a.length === 0) return b.length;
+    if (b.length === 0) return a.length;
+    var previous = new Array(b.length + 1);
+    var current = new Array(b.length + 1);
+    for (var j = 0; j <= b.length; j++) previous[j] = j;
+    for (var i = 1; i <= a.length; i++) {
+      current[0] = i;
+      for (var k = 1; k <= b.length; k++) {
+        var cost = a.charAt(i - 1) === b.charAt(k - 1) ? 0 : 1;
+        current[k] = Math.min(current[k - 1] + 1, previous[k] + 1, previous[k - 1] + cost);
+      }
+      for (var m = 0; m <= b.length; m++) previous[m] = current[m];
+    }
+    return previous[b.length];
+  }
+
+  /** 1 - distance / length of the longer string. */
+  function levenshteinNorm(a, b) {
+    a = String(a); b = String(b);
+    if (!a && !b) return 1.0;
+    var longest = Math.max(a.length, b.length);
+    if (longest === 0) return 1.0;
+    return 1.0 - levenshtein(a, b) / longest;
+  }
+
+  /* ------------------------------------------------------ jaro-winkler */
+
+  function jaro(a, b) {
+    if (a === b) return a.length === 0 ? 1.0 : 1.0;
+    if (a.length === 0 || b.length === 0) return 0.0;
+    var window = Math.floor(Math.max(a.length, b.length) / 2) - 1;
+    if (window < 0) window = 0;
+    var aFlags = new Array(a.length).fill(false);
+    var bFlags = new Array(b.length).fill(false);
+    var matches = 0;
+    for (var i = 0; i < a.length; i++) {
+      var low = Math.max(0, i - window);
+      var high = Math.min(i + window + 1, b.length);
+      for (var j = low; j < high; j++) {
+        if (!bFlags[j] && a.charAt(i) === b.charAt(j)) {
+          aFlags[i] = true; bFlags[j] = true; matches++;
+          break;
+        }
+      }
+    }
+    if (matches === 0) return 0.0;
+    var transpositions = 0, k = 0;
+    for (var m = 0; m < a.length; m++) {
+      if (!aFlags[m]) continue;
+      while (!bFlags[k]) k++;
+      if (a.charAt(m) !== b.charAt(k)) transpositions++;
+      k++;
+    }
+    transpositions = Math.floor(transpositions / 2);
+    return (matches / a.length + matches / b.length +
+            (matches - transpositions) / matches) / 3.0;
+  }
+
+  //: Measured against rapidfuzz rather than assumed: a common prefix earns no
+  //: boost below this, so ABCXXXXXXXXX/ABCYYYYYYYYY stays at its Jaro score.
+  var WINKLER_BOOST_THRESHOLD = 0.7;
+  var WINKLER_PREFIX_WEIGHT = 0.1;
+  var WINKLER_MAX_PREFIX = 4;
+
+  function jaroWinkler(a, b) {
+    a = String(a); b = String(b);
+    if (!a && !b) return 1.0;
+    var score = jaro(a, b);
+    if (score <= WINKLER_BOOST_THRESHOLD) return score;
+    var prefix = 0;
+    var limit = Math.min(a.length, b.length, WINKLER_MAX_PREFIX);
+    while (prefix < limit && a.charAt(prefix) === b.charAt(prefix)) prefix++;
+    return score + prefix * WINKLER_PREFIX_WEIGHT * (1.0 - score);
+  }
+
+  /* -------------------------------------------------------------- dice */
+
+  /** Character bigrams as a multiset. No padding: AB yields exactly {AB}. */
+  function bigrams(text) {
+    var counts = Object.create(null);
+    for (var i = 0; i + 1 < text.length; i++) {
+      var gram = text.substr(i, 2);
+      counts[gram] = (counts[gram] || 0) + 1;
+    }
+    return counts;
+  }
+
+  function total(counts) {
+    var sum = 0;
+    for (var gram in counts) sum += counts[gram];
+    return sum;
+  }
+
+  function bigramDice(a, b) {
+    return dicePrepared(prepare(a), prepare(b));
+  }
+
+  /* ----------------------------------------------------------- soundex */
+
+  var SOUNDEX_GROUPS = [
+    ['BFPV', '1'], ['CGJKQSXZ', '2'], ['DT', '3'],
+    ['L', '4'], ['MN', '5'], ['R', '6'],
+  ];
+
+  function soundexCode(letter) {
+    for (var i = 0; i < SOUNDEX_GROUPS.length; i++) {
+      if (SOUNDEX_GROUPS[i][0].indexOf(letter) !== -1) return SOUNDEX_GROUPS[i][1];
+    }
+    return null;
+  }
+
+  function soundex(text) {
+    text = String(text);
+    if (!text) return '';
+    text = text.normalize('NFKD').toUpperCase();
+    var result = text.charAt(0);
+    var count = 1;
+    var last = soundexCode(text.charAt(0));
+    for (var i = 1; i < text.length; i++) {
+      var letter = text.charAt(i);
+      var code = soundexCode(letter);
+      if (code !== null) {
+        if (code !== last) { result += code; count++; }
+        last = code;
+      } else if (letter !== 'H' && letter !== 'W') {
+        last = null;
+      }
+      if (count === 4) break;
+    }
+    return result + '0'.repeat(4 - count);
+  }
+
+  function soundexMatch(a, b) {
+    return soundexPrepared(prepare(a), prepare(b));
+  }
+
+  /* -------------------------------------------------- double metaphone */
+
+  /**
+   * A port of the `metaphone` package's DoubleMetaphone, quirks included.
+   *
+   * `next` is instance state on purpose. Several branches fall through
+   * without assigning it -- every digit and punctuation mark reaches the end
+   * of the dispatch untouched -- and the loop then applies whatever the
+   * previous letter left behind. That is what the Python does, and this
+   * dataset is full of names like `CLOT XLM` and `O2 PLUS` where it fires.
+   */
+  function DoubleMetaphone() {
+    this.position = 0;
+    this.primary = '';
+    this.secondary = '';
+    this.next = [null, 1];
+  }
+
+  DoubleMetaphone.prototype._word = function (input) {
+    var upper = foldForPhonetics(input);
+    var prepad = '--';
+    return {
+      upper: upper,
+      length: upper.length,
+      startIndex: prepad.length,
+      endIndex: prepad.length + upper.length - 1,
+      buffer: prepad + upper + '------',
+      isSlavoGermanic: (upper.indexOf('W') > -1 || upper.indexOf('K') > -1
+                        || upper.indexOf('CZ') > -1 || upper.indexOf('WITZ') > -1),
+    };
+  };
+
+  DoubleMetaphone.prototype.letters = function (start, end) {
+    if (!end) end = start + 1;
+    var w = this.word;
+    return w.buffer.slice(w.startIndex + start, w.startIndex + end);
+  };
+
+  DoubleMetaphone.prototype.parse = function (input) {
+    var w = this.word = this._word(input);
+    var buf = w.buffer;
+    var start = w.startIndex;
+    var end = w.endIndex;
+    this.position = start;
+    this.primary = '';
+    this.secondary = '';
+    this.next = [null, 1];
+
+    // skip these silent letters at the start of a word
+    if (inList(this.letters(0, 2), SILENT_STARTERS)) this.position += 1;
+    // initial X is pronounced Z, e.g. Xavier; Z maps to S
+    if (this.letters(0) === 'X') {
+      this.primary = this.secondary = 'S';
+      this.position += 1;
+    }
+
+    var at = function (i) { return buf.charAt(i); };
+    var slice = function (a, b) { return buf.slice(a, b); };
+
+    while (this.position <= end) {
+      var p = this.position;
+      var ch = at(p);
+
+      if (isVowel(ch)) {
+        this.next = [null, 1];
+        if (p === start) this.next = ['A', 1];
+      } else if (ch === ' ') {
+        this.position += 1;
+        continue;
+      } else if (ch === 'B') {
+        this.next = at(p + 1) === 'B' ? ['P', 2] : ['P', 1];
+      } else if (ch === 'C') {
+        if (p > start + 1 && !isVowel(at(p - 2)) && slice(p - 1, p + 2) === 'ACH'
+            && at(p + 2) !== 'I'
+            && (at(p + 2) !== 'E' || inList(slice(p - 2, p + 4), ['BACHER', 'MACHER']))) {
+          this.next = ['K', 2];
+        } else if (p === start && slice(start, start + 6) === 'CAESAR') {
+          this.next = ['S', 2];
+        } else if (slice(p, p + 4) === 'CHIA') {
+          this.next = ['K', 2];
+        } else if (slice(p, p + 2) === 'CH') {
+          if (p > start && slice(p, p + 4) === 'CHAE') {
+            this.next = ['K', 'X', 2];
+          } else if (p === start
+                     && (inList(slice(p + 1, p + 6), ['HARAC', 'HARIS'])
+                         || inList(slice(p + 1, p + 4), ['HOR', 'HYM', 'HIA', 'HEM']))
+                     && slice(start, start + 5) !== 'CHORE') {
+            this.next = ['K', 2];
+          } else if (inList(slice(start, start + 4), ['VAN ', 'VON '])
+                     || slice(start, start + 3) === 'SCH'
+                     || inList(slice(p - 2, p + 4), ['ORCHES', 'ARCHIT', 'ORCHID'])
+                     || inList(at(p + 2), ['T', 'S'])
+                     || ((inList(at(p - 1), ['A', 'O', 'U', 'E']) || p === start)
+                         && inList(at(p + 2), ['L', 'R', 'N', 'M', 'B', 'H', 'F', 'V', 'W']))) {
+            this.next = ['K', 2];
+          } else if (p > start) {
+            this.next = slice(start, start + 2) === 'MC' ? ['K', 2] : ['X', 'K', 2];
+          } else {
+            this.next = ['X', 2];
+          }
+        } else if (slice(p, p + 2) === 'CZ' && slice(p - 2, p + 2) !== 'WICZ') {
+          this.next = ['S', 'X', 2];
+        } else if (slice(p + 1, p + 4) === 'CIA') {
+          this.next = ['X', 3];
+        } else if (slice(p, p + 2) === 'CC' && !(p === start + 1 && at(start) === 'M')) {
+          if (inList(at(p + 2), ['I', 'E', 'H']) && slice(p + 2, p + 4) !== 'HU') {
+            if ((p === start + 1 && at(start) === 'A')
+                || inList(slice(p - 1, p + 4), ['UCCEE', 'UCCES'])) {
+              this.next = ['KS', 3];
+            } else {
+              this.next = ['X', 3];
+            }
+          } else {
+            this.next = ['K', 2];
+          }
+        } else if (inList(slice(p, p + 2), ['CK', 'CG', 'CQ'])) {
+          this.next = ['K', 2];
+        } else if (inList(slice(p, p + 2), ['CI', 'CE', 'CY'])) {
+          this.next = inList(slice(p, p + 3), ['CIO', 'CIE', 'CIA'])
+            ? ['S', 'X', 2] : ['S', 2];
+        } else if (inList(slice(p + 1, p + 3), [' C', ' Q', ' G'])) {
+          this.next = ['K', 3];
+        } else if (inList(at(p + 1), ['C', 'K', 'Q'])
+                   && !inList(slice(p + 1, p + 3), ['CE', 'CI'])) {
+          this.next = ['K', 2];
+        } else {
+          this.next = ['K', 1];
+        }
+      } else if (ch === 'D') {
+        if (slice(p, p + 2) === 'DG') {
+          this.next = inList(at(p + 2), ['I', 'E', 'Y']) ? ['J', 3] : ['TK', 2];
+        } else if (inList(slice(p, p + 2), ['DT', 'DD'])) {
+          this.next = ['T', 2];
+        } else {
+          this.next = ['T', 1];
+        }
+      } else if (ch === 'F') {
+        this.next = at(p + 1) === 'F' ? ['F', 2] : ['F', 1];
+      } else if (ch === 'G') {
+        if (at(p + 1) === 'H') {
+          if (p > start && !isVowel(at(p - 1))) {
+            this.next = ['K', 2];
+          } else if (p < start + 3) {
+            // NOTE: when p is start+1 or start+2 this leaves `next` alone.
+            if (p === start) {
+              this.next = at(p + 2) === 'I' ? ['J', 2] : ['K', 2];
+            }
+          } else if ((p > start + 1 && inList(at(p - 2), ['B', 'H', 'D']))
+                     || (p > start + 2 && inList(at(p - 3), ['B', 'H', 'D']))
+                     || (p > start + 3 && inList(at(p - 4), ['B', 'H']))) {
+            this.next = [null, 2];
+          } else if (p > start + 2 && at(p - 1) === 'U'
+                     && inList(at(p - 3), ['C', 'G', 'L', 'R', 'T'])) {
+            this.next = ['F', 2];
+          } else if (p > start && at(p - 1) !== 'I') {
+            this.next = ['K', 2];
+          }
+          // else: `next` deliberately unchanged, as in the Python
+        } else if (at(p + 1) === 'N') {
+          if (p === start + 1 && isVowel(at(start)) && !w.isSlavoGermanic) {
+            this.next = ['KN', 'N', 2];
+          } else if (slice(p + 2, p + 4) !== 'EY' && at(p + 1) !== 'Y'
+                     && !w.isSlavoGermanic) {
+            this.next = ['N', 'KN', 2];
+          } else {
+            this.next = ['KN', 2];
+          }
+        } else if (slice(p + 1, p + 3) === 'LI' && !w.isSlavoGermanic) {
+          this.next = ['KL', 'L', 2];
+        } else if (p === start
+                   && (at(p + 1) === 'Y'
+                       || inList(slice(p + 1, p + 3),
+                                 ['ES', 'EP', 'EB', 'EL', 'EY', 'IB', 'IL',
+                                  'IN', 'IE', 'EI', 'ER']))) {
+          this.next = ['K', 'J', 2];
+        } else if ((slice(p + 1, p + 3) === 'ER' || at(p + 1) === 'Y')
+                   && !inList(slice(start, start + 6), ['DANGER', 'RANGER', 'MANGER'])
+                   && !inList(at(p - 1), ['E', 'I'])
+                   && !inList(slice(p - 1, p + 2), ['RGY', 'OGY'])) {
+          this.next = ['K', 'J', 2];
+        } else if (inList(at(p + 1), ['E', 'I', 'Y'])
+                   || inList(slice(p - 1, p + 3), ['AGGI', 'OGGI'])) {
+          if (inList(slice(start, start + 4), ['VON ', 'VAN '])
+              || slice(start, start + 3) === 'SCH'
+              || slice(p + 1, p + 3) === 'ET') {
+            this.next = ['K', 2];
+          } else if (slice(p + 1, p + 5) === 'IER ') {
+            this.next = ['J', 2];
+          } else {
+            this.next = ['J', 'K', 2];
+          }
+        } else if (at(p + 1) === 'G') {
+          this.next = ['K', 2];
+        } else {
+          this.next = ['K', 1];
+        }
+      } else if (ch === 'H') {
+        if ((p === start || isVowel(at(p - 1))) && isVowel(at(p + 1))) {
+          this.next = ['H', 2];
+        } else {
+          this.next = [null, 1];
+        }
+      } else if (ch === 'J') {
+        if (slice(p, p + 4) === 'JOSE' || slice(start, start + 4) === 'SAN ') {
+          if ((p === start && at(p + 4) === ' ') || slice(start, start + 4) === 'SAN ') {
+            this.next = ['H'];
+          } else {
+            this.next = ['J', 'H'];
+          }
+        } else if (p === start && slice(p, p + 4) !== 'JOSE') {
+          this.next = ['J', 'A'];
+        } else if (isVowel(at(p - 1)) && !w.isSlavoGermanic
+                   && inList(at(p + 1), ['A', 'O'])) {
+          this.next = ['J', 'H'];
+        } else if (p === end) {
+          this.next = ['J', ' '];
+        } else if (!inList(at(p + 1), ['L', 'T', 'K', 'S', 'N', 'M', 'B', 'Z'])
+                   && !inList(at(p - 1), ['S', 'K', 'L'])) {
+          this.next = ['J'];
+        } else {
+          this.next = [null];
+        }
+        this.next = this.next.concat([at(p + 1) === 'J' ? 2 : 1]);
+      } else if (ch === 'K') {
+        this.next = at(p + 1) === 'K' ? ['K', 2] : ['K', 1];
+      } else if (ch === 'L') {
+        if (at(p + 1) === 'L') {
+          if ((p === end - 2 && inList(slice(p - 1, p + 3), ['ILLO', 'ILLA', 'ALLE']))
+              || ((inList(slice(end - 1, end + 1), ['AS', 'OS']) || inList(at(end), ['A', 'O']))
+                  && slice(p - 1, p + 3) === 'ALLE')) {
+            this.next = ['L', '', 2];
+          } else {
+            this.next = ['L', 2];
+          }
+        } else {
+          this.next = ['L', 1];
+        }
+      } else if (ch === 'M') {
+        if ((slice(p + 1, p + 4) === 'UMB' && (p + 1 === end || slice(p + 2, p + 4) === 'ER'))
+            || at(p + 1) === 'M') {
+          this.next = ['M', 2];
+        } else {
+          this.next = ['M', 1];
+        }
+      } else if (ch === 'N') {
+        this.next = at(p + 1) === 'N' ? ['N', 2] : ['N', 1];
+      } else if (ch === 'P') {
+        if (at(p + 1) === 'H') this.next = ['F', 2];
+        else if (inList(at(p + 1), ['P', 'B'])) this.next = ['P', 2];
+        else this.next = ['P', 1];
+      } else if (ch === 'Q') {
+        this.next = at(p + 1) === 'Q' ? ['K', 2] : ['K', 1];
+      } else if (ch === 'R') {
+        if (p === end && !w.isSlavoGermanic && slice(p - 2, p) === 'IE'
+            && !inList(slice(p - 4, p - 2), ['ME', 'MA'])) {
+          this.next = ['', 'R'];
+        } else {
+          this.next = ['R'];
+        }
+        this.next = this.next.concat([at(p + 1) === 'R' ? 2 : 1]);
+      } else if (ch === 'S') {
+        if (inList(slice(p - 1, p + 2), ['ISL', 'YSL'])) {
+          this.next = [null, 1];
+        } else if (p === start && slice(start, start + 5) === 'SUGAR') {
+          this.next = ['X', 'S', 1];
+        } else if (slice(p, p + 2) === 'SH') {
+          this.next = inList(slice(p + 1, p + 5), ['HEIM', 'HOEK', 'HOLM', 'HOLZ'])
+            ? ['S', 2] : ['X', 2];
+        } else if (inList(slice(p, p + 3), ['SIO', 'SIA']) || slice(p, p + 4) === 'SIAN') {
+          this.next = w.isSlavoGermanic ? ['S', 3] : ['S', 'X', 3];
+        } else if ((p === start && inList(at(p + 1), ['M', 'N', 'L', 'W']))
+                   || at(p + 1) === 'Z') {
+          this.next = ['S', 'X'].concat([at(p + 1) === 'Z' ? 2 : 1]);
+        } else if (slice(p, p + 2) === 'SC') {
+          if (at(p + 2) === 'H') {
+            if (inList(slice(p + 3, p + 5), ['OO', 'ER', 'EN', 'UY', 'ED', 'EM'])) {
+              this.next = inList(slice(p + 3, p + 5), ['ER', 'EN'])
+                ? ['X', 'SK', 3] : ['SK', 3];
+            } else if (p === start && !isVowel(at(start + 3)) && at(start + 3) !== 'W') {
+              this.next = ['X', 'S', 3];
+            } else {
+              this.next = ['X', 3];
+            }
+          } else if (inList(at(p + 2), ['I', 'E', 'Y'])) {
+            this.next = ['S', 3];
+          } else {
+            this.next = ['SK', 3];
+          }
+        } else if (p === end && inList(slice(p - 2, p), ['AI', 'OI'])) {
+          this.next = ['', 'S', 1];
+        } else {
+          this.next = ['S'].concat([inList(at(p + 1), ['S', 'Z']) ? 2 : 1]);
+        }
+      } else if (ch === 'T') {
+        if (slice(p, p + 4) === 'TION') {
+          this.next = ['X', 3];
+        } else if (inList(slice(p, p + 3), ['TIA', 'TCH'])) {
+          this.next = ['X', 3];
+        } else if (slice(p, p + 2) === 'TH' || slice(p, p + 3) === 'TTH') {
+          if (inList(slice(p + 2, p + 4), ['OM', 'AM'])
+              || inList(slice(start, start + 4), ['VON ', 'VAN '])
+              || slice(start, start + 3) === 'SCH') {
+            this.next = ['T', 2];
+          } else {
+            this.next = ['0', 'T', 2];
+          }
+        } else if (inList(at(p + 1), ['T', 'D'])) {
+          this.next = ['T', 2];
+        } else {
+          this.next = ['T', 1];
+        }
+      } else if (ch === 'V') {
+        this.next = at(p + 1) === 'V' ? ['F', 2] : ['F', 1];
+      } else if (ch === 'W') {
+        if (slice(p, p + 2) === 'WR') {
+          this.next = ['R', 2];
+        } else if (p === start && (isVowel(at(p + 1)) || slice(p, p + 2) === 'WH')) {
+          this.next = isVowel(at(p + 1)) ? ['A', 'F', 1] : ['A', 1];
+        } else if ((p === end && isVowel(at(p - 1)))
+                   || inList(slice(p - 1, p + 4), ['EWSKI', 'EWSKY', 'OWSKI', 'OWSKY'])
+                   || slice(start, start + 3) === 'SCH') {
+          this.next = ['', 'F', 1];
+        } else if (inList(slice(p, p + 4), ['WICZ', 'WITZ'])) {
+          this.next = ['TS', 'FX', 4];
+        } else {
+          this.next = [null, 1];
+        }
+      } else if (ch === 'X') {
+        this.next = [null];
+        if (!(p === end && (inList(slice(p - 3, p), ['IAU', 'EAU'])
+                            || inList(slice(p - 2, p), ['AU', 'OU'])))) {
+          this.next = ['KS'];
+        }
+        this.next = this.next.concat([inList(at(p + 1), ['C', 'X']) ? 2 : 1]);
+      } else if (ch === 'Z') {
+        if (at(p + 1) === 'H') {
+          this.next = ['J'];
+        } else if (inList(slice(p + 1, p + 3), ['ZO', 'ZI', 'ZA'])
+                   || (w.isSlavoGermanic && p > start && at(p - 1) !== 'T')) {
+          this.next = ['S', 'TS'];
+        } else {
+          this.next = ['S'];
+        }
+        this.next = this.next.concat(
+          [(at(p + 1) === 'Z' || at(p + 1) === 'H') ? 2 : 1]);
+      }
+      // Anything else -- a digit, a slash, a full stop -- reaches here with
+      // `next` untouched, and the Python reuses it exactly like this.
+
+      if (this.next.length === 2) {
+        if (this.next[0]) {
+          this.primary += this.next[0];
+          this.secondary += this.next[0];
+        }
+        this.position += this.next[1];
+      } else if (this.next.length === 3) {
+        if (this.next[0]) this.primary += this.next[0];
+        if (this.next[1]) this.secondary += this.next[1];
+        this.position += this.next[2];
+      }
+    }
+    if (this.primary === this.secondary) this.secondary = '';
+    return [this.primary, this.secondary];
+  };
+
+  /** [primary, secondary]; secondary is '' when identical to the primary. */
+  function doubleMetaphone(name) {
+    if (!name) return ['', ''];
+    return new DoubleMetaphone().parse(name);
+  }
+
+  /**
+   * SPEC S7's scoring rule, which is a judgement call and not a standard:
+   * 1.0 on a primary match, 0.7 when any code of one collides with any code
+   * of the other, otherwise normalised Levenshtein on the primaries so that
+   * KLPS against KLPZ degrades rather than falling to zero.
+   */
+  var DMETA_SECONDARY_MATCH = 0.7;
+
+  function dmetaphoneSim(a, b) {
+    return dmetaPrepared(prepare(a), prepare(b));
+  }
+
+  /* ------------------------------------------------------------ exports */
+
+  /* ------------------------------------------------- prepared-name scoring
+   *
+   * A formulary of 2,000 names is 1,999,000 pairs, and the naive path runs
+   * `doubleMetaphone` and `soundex` twice for each of them -- four million
+   * encodings of two thousand distinct strings. Encoding each name once and
+   * comparing the codes is the whole of the difference.
+   *
+   * It is written as **one** implementation rather than a fast copy beside a
+   * slow one: `prepare` does the per-name work, the `*Prepared` functions
+   * hold the comparison logic, and `bigramDice`, `soundexMatch`,
+   * `dmetaphoneSim` and `allMetrics` are now callers of them. A second
+   * implementation would agree with the first until it did not, and the
+   * 500-pair parity sample would still pass because it exercises the pair
+   * form. There is nothing here for it to diverge from.
+   */
+
+  function prepare(name) {
+    var text = String(name);
+    var counts = bigrams(text);
+    return {
+      text: text,
+      bigrams: counts,
+      bigramTotal: total(counts),
+      dm: text ? doubleMetaphone(text) : ['', ''],
+      soundex: text ? soundex(text) : '',
+    };
+  }
+
+  function dicePrepared(pa, pb) {
+    if (pa.text === pb.text) return 1.0;
+    var denominator = pa.bigramTotal + pb.bigramTotal;
+    if (denominator === 0) return 0.0;
+    var ba = pa.bigrams, bb = pb.bigrams, overlap = 0;
+    for (var gram in ba) {
+      if (bb[gram]) overlap += Math.min(ba[gram], bb[gram]);
+    }
+    return 2.0 * overlap / denominator;
+  }
+
+  function soundexPrepared(pa, pb) {
+    if (pa.text === pb.text) return 1.0;
+    if (!pa.soundex || !pb.soundex) return 0.0;
+    return pa.soundex === pb.soundex ? 1.0 : 0.0;
+  }
+
+  function dmetaPrepared(pa, pb) {
+    if (pa.text === pb.text) return 1.0;
+    var codesA = pa.dm, codesB = pb.dm;
+    if (!codesA[0] || !codesB[0]) return 0.0;
+    if (codesA[0] === codesB[0]) return 1.0;
+    var setA = codesA.filter(Boolean), setB = codesB.filter(Boolean);
+    for (var i = 0; i < setA.length; i++) {
+      if (setB.indexOf(setA[i]) !== -1) return DMETA_SECONDARY_MATCH;
+    }
+    return levenshteinNorm(codesA[0], codesB[0]);
+  }
+
+  function metricsPrepared(pa, pb) {
+    return {
+      lev: levenshteinNorm(pa.text, pb.text),
+      jw: jaroWinkler(pa.text, pb.text),
+      dice: dicePrepared(pa, pb),
+      dmeta: dmetaPrepared(pa, pb),
+      soundex: soundexPrepared(pa, pb),
+    };
+  }
+
+  function allMetrics(a, b) {
+    return metricsPrepared(prepare(a), prepare(b));
+  }
+
+  var LASA = {
+    levenshtein: levenshtein,
+    levenshteinNorm: levenshteinNorm,
+    jaro: jaro,
+    jaroWinkler: jaroWinkler,
+    bigramDice: bigramDice,
+    soundex: soundex,
+    soundexMatch: soundexMatch,
+    doubleMetaphone: doubleMetaphone,
+    dmetaphoneSim: dmetaphoneSim,
+    allMetrics: allMetrics,
+    prepare: prepare,
+    metricsPrepared: metricsPrepared,
+    METRIC_NAMES: ['lev', 'jw', 'dice', 'dmeta', 'soundex'],
+  };
+
+  if (typeof module !== 'undefined' && module.exports) module.exports = LASA;
+  global.LASA = LASA;
+})(typeof globalThis !== 'undefined' ? globalThis : this);
+
+/*
+ * Two names, aligned character by character. (BUILD.md G2)
+ *
+ * The one place in either tool worth spending design effort: the meaning is
+ * carried by the character grid, so the grid has to be right and everything
+ * around it stays plain.
+ *
+ *     C H L O R P R O P A M I D E
+ *     C H L O R P R O M A Z I N E
+ *               ▔▔▔▔▔▔▔ ▔▔▔▔▔▔▔▔▔
+ *     K L R P R P M T
+ *     K L R P R M S N
+ *
+ * **Two configurations, and the difference is not cosmetic.** The name
+ * checker marks divergence and shows the phonetic rows. The rating app shows
+ * the two names and nothing else: marking where they differ would tell a
+ * rater what to look at, which is the judgement the study is asking them to
+ * make. `alignmentRows(a, b, {marking: false, phonetics: false})` returns a
+ * structure with no marks and no codes in it at all, rather than a structure
+ * carrying them and a renderer that declines to draw them.
+ *
+ * Alignment is Needleman-Wunsch: match +1, mismatch -1, gap -1, ties resolved
+ * toward a diagonal so that equal-length names align without gaps. That keeps
+ * it sane when the names are very different lengths -- the shorter one gets
+ * gaps rather than the grid losing its columns.
+ */
+(function (global) {
+  'use strict';
+
+  var GAP = ' ';          // a non-breaking space, so a gap holds its column
+  var MARK = '▔';         // ▔, the overline used for the divergence row
+  var MATCH_SCORE = 1;
+  var MISMATCH_SCORE = -1;
+  var GAP_SCORE = -1;
+
+  /** Align two strings, returning the gap-padded rows. */
+  function align(a, b) {
+    a = String(a); b = String(b);
+    var rows = a.length + 1, cols = b.length + 1;
+    var score = [], from = [];
+    for (var i = 0; i < rows; i++) {
+      score.push(new Array(cols).fill(0));
+      from.push(new Array(cols).fill(''));
+    }
+    for (var r = 1; r < rows; r++) { score[r][0] = r * GAP_SCORE; from[r][0] = 'up'; }
+    for (var c = 1; c < cols; c++) { score[0][c] = c * GAP_SCORE; from[0][c] = 'left'; }
+
+    for (var y = 1; y < rows; y++) {
+      for (var x = 1; x < cols; x++) {
+        var same = a.charAt(y - 1) === b.charAt(x - 1);
+        var diagonal = score[y - 1][x - 1] + (same ? MATCH_SCORE : MISMATCH_SCORE);
+        var up = score[y - 1][x] + GAP_SCORE;
+        var left = score[y][x - 1] + GAP_SCORE;
+        var best = Math.max(diagonal, up, left);
+        score[y][x] = best;
+        // Diagonal first, so equal-length names align without gaps.
+        from[y][x] = best === diagonal ? 'diag' : (best === up ? 'up' : 'left');
+      }
+    }
+
+    var topRow = [], bottomRow = [];
+    var py = a.length, px = b.length;
+    while (py > 0 || px > 0) {
+      var step = from[py][px];
+      if (py === 0) step = 'left';
+      else if (px === 0) step = 'up';
+      if (step === 'diag') {
+        topRow.push(a.charAt(py - 1)); bottomRow.push(b.charAt(px - 1));
+        py--; px--;
+      } else if (step === 'up') {
+        topRow.push(a.charAt(py - 1)); bottomRow.push(GAP);
+        py--;
+      } else {
+        topRow.push(GAP); bottomRow.push(b.charAt(px - 1));
+        px--;
+      }
+    }
+    topRow.reverse(); bottomRow.reverse();
+    return { a: topRow, b: bottomRow };
+  }
+
+  /**
+   * The rows a renderer draws.
+   *
+   * `options.marking` adds a `marks` row; `options.phonetics` adds aligned
+   * phonetic rows. **Both default to false**, so a caller that forgets to
+   * think about it gets the blinded configuration rather than the revealing
+   * one.
+   */
+  function alignmentRows(a, b, options) {
+    options = options || {};
+    // `plain` lays both names out in the same monospaced grid without
+    // computing an alignment at all. The rating app uses it, and the reason
+    // is the same one that keeps the marks off: inserted gaps say where the
+    // insertions and deletions are, which is part of the judgement a rater is
+    // being asked to make. "The two names only" is taken literally.
+    var aligned = options.plain
+      ? { a: String(a).split(''), b: String(b).split('') }
+      : align(a, b);
+    var rows = { a: aligned.a, b: aligned.b };
+    if (options.plain) return rows;
+
+    if (options.marking) {
+      rows.marks = aligned.a.map(function (ch, i) {
+        return ch === aligned.b[i] ? GAP : MARK;
+      });
+    }
+    if (options.phonetics) {
+      if (!global.LASA || !global.LASA.doubleMetaphone) {
+        throw new Error('phonetic rows need lasa-metrics.js loaded first');
+      }
+      var codeA = global.LASA.doubleMetaphone(a)[0];
+      var codeB = global.LASA.doubleMetaphone(b)[0];
+      var phonetic = align(codeA, codeB);
+      rows.codeA = phonetic.a;
+      rows.codeB = phonetic.b;
+    }
+    return rows;
+  }
+
+  var CLASSES = {
+    a: 'align-name', b: 'align-name',
+    marks: 'align-marks', codeA: 'align-code', codeB: 'align-code',
+  };
+  var ORDER = ['a', 'b', 'marks', 'codeA', 'codeB'];
+
+  /** Render into `container`, replacing whatever is there. */
+  function renderAlignment(container, a, b, options) {
+    var rows = alignmentRows(a, b, options);
+    container.textContent = '';
+    var grid = document.createElement('div');
+    grid.className = 'alignment';
+    ORDER.forEach(function (key) {
+      if (!rows[key]) return;
+      var line = document.createElement('div');
+      line.className = CLASSES[key];
+      rows[key].forEach(function (ch) {
+        var cell = document.createElement('span');
+        cell.className = 'align-cell';
+        // The divergence row is an underline, not a coloured glyph: colour
+        // must never carry a meaning on its own, and a character drawn in red
+        // does exactly that. `alignmentRows` still returns MARK and GAP -- the
+        // pure function is unchanged and so is everything asserting on it --
+        // and only the rendering differs.
+        if (key === 'marks') {
+          if (ch === MARK) cell.className += ' is-diff';
+          cell.textContent = '';
+          line.appendChild(cell);
+          return;
+        }
+        cell.textContent = ch;
+        line.appendChild(cell);
+      });
+      grid.appendChild(line);
+    });
+    container.appendChild(grid);
+    return rows;
+  }
+
+  /* ------------------------------------------------------- Tall Man lettering
+
+     `chlorproPAMIDE` / `chlorproMAZINE`. Capitals on the part that differs,
+     lower case on the part the two names share.
+
+     This is the one intervention in the whole project a hospital pharmacy can
+     apply without software, budget or approval: it is a way of writing a
+     label. That is what makes a register usable rather than merely
+     informative, and it is also why the rules below refuse more often than
+     they accept.
+
+     ## Longest common prefix and suffix, not the alignment
+
+     REPURPOSE.md §4 says to derive this from the alignment the display already
+     computes and not to implement a second diff. **It is computed from the
+     longest common prefix and suffix instead**, on the operator's instruction
+     and for a measurable reason: the alignment is Needleman-Wunsch, it finds
+     matching characters wherever they fall, and for `ERYTHROMYCIN` against
+     `AZITHROMYCIN` it matches enough of the middle that the differing span
+     runs almost to the end -- `ERYTHROMYcin` / `AZITHROMYcin`, three quarters
+     capitalised. Common prefix and suffix give `ERYthromycin` /
+     `AZIthromycin`, which is what ISMP publishes.
+
+     The two answer different questions. The alignment answers *where do these
+     names correspond*, which is what the display is for. Tall Man asks *what
+     is the shared stem and what hangs off it*, and a stem is a prefix.
+
+     ## The refusals, which matter more than the renderings
+
+       * **A single differing character gets nothing.** `AMLOPIN`/`AMLODIN` as
+         `amloPin`/`amloDin` draws the eye to a letter rather than a syllable.
+         Decided on the raw difference, before the run is widened.
+       * **A shared region under three characters gets nothing.** Two names
+         that barely overlap end up almost entirely capitalised, which is
+         SHOUTING and carries no information.
+       * **More than 70% capitals gets nothing.** §4 does not ask for this and
+         the measurement did: without it, 101 of 226 rendered names were more
+         than half capitals and `levETIRACETAM`/`levOCETIRIZINE` reached 79%.
+         70% is where published practice sits -- `metOPROLOL` is 7 capitals in
+         10 letters, exactly 70% -- so the cap admits ISMP's own renderings and
+         excludes the ones §4's reasoning objects to.
+       * **A shared prefix or suffix under three characters is absorbed** into
+         the capitalised run rather than left in lower case. `CHLORPROPAMIDE`
+         and `CHLORPROMAZINE` share a trailing `E`; left alone it renders
+         `chlorproPAMIDe`, which reads as a typo. Three characters is the
+         threshold §4 already sets for a shared region being worth keeping,
+         applied per end -- a one- or two-letter stem steadies nothing.
+
+     In every refusing case the caller gets a `reason`, so a page can say why
+     there is no suggestion instead of leaving a blank that reads as an
+     oversight.
+
+     ## What this is not
+
+     Nothing here is expert-reviewed, and `outputs/tallman_validation.json`
+     measures the gap against ISMP's published renderings. Published lists
+     encode a judgement about which segment *distinguishes*, not merely which
+     one differs: ISMP writes `cefTRIAXone`/`cefOTAXime`, leaving `one` and
+     `ime` in lower case because the distinguishing syllable ends before them.
+     No rule over character differences recovers that. */
+
+  //: More than this share of capitals and the rendering is harder to read
+  //: than the name. `metOPROLOL` is 7 in 10, which published practice accepts.
+  var TALL_MAN_MAX_CAPS = 0.70;
+
+  //: Below this, a shared prefix or suffix is too short to steady the eye:
+  //: a one- or two-letter stem is not one a reader can hold on to.
+  //:
+  //: (The obvious word for that is also one of the survey's six queue labels,
+  //: and this file is inlined verbatim into the blinded rating app, whose
+  //: bytes are checked for all six. Naming it differently costs nothing and
+  //: keeps that check strict.)
+  var TALL_MAN_MIN_STEM = 3;
+
+  function commonPrefix(a, b) {
+    var i = 0, n = Math.min(a.length, b.length);
+    while (i < n && a.charAt(i) === b.charAt(i)) i++;
+    return i;
+  }
+
+  function commonSuffix(a, b, limit) {
+    var i = 0, n = Math.min(a.length, b.length) - limit;
+    while (i < n && a.charAt(a.length - 1 - i) === b.charAt(b.length - 1 - i)) i++;
+    return i;
+  }
+
+  function capitalisedShare(rendered) {
+    var letters = 0, capitals = 0;
+    for (var i = 0; i < rendered.length; i++) {
+      var ch = rendered.charAt(i);
+      if (ch.toUpperCase() === ch.toLowerCase()) continue;   // not a letter
+      letters++;
+      if (ch === ch.toUpperCase()) capitals++;
+    }
+    return letters ? capitals / letters : 0;
+  }
+
+  function tallMan(a, b) {
+    a = String(a);
+    b = String(b);
+    function refuse(reason) { return { ok: false, reason: reason, a: a, b: b }; }
+
+    if (!a.length || !b.length) return refuse('one of the names is empty');
+    if (a.toUpperCase() === b.toUpperCase()) {
+      return refuse('the two names are identical once normalised');
+    }
+
+    var prefix = commonPrefix(a, b);
+    // The suffix may not run back into the prefix, or a name that is a
+    // rotation of the other would report more shared characters than it has.
+    var suffix = commonSuffix(a, b, prefix);
+
+    // Decided on the difference as found, before either end is absorbed
+    // below. Widening first would let `ATENOLOL`/`ATENOLAL` -- one character
+    // apart, O against A -- render as `atenolOL`/`atenolAL`, the exact thing
+    // §4 forbids, reached by a rule meant for something else.
+    if (Math.max(a.length, b.length) - prefix - suffix <= 1) {
+      return refuse('the two names differ by a single character, and a '
+        + 'capital on one letter is harder to read than the name itself');
+    }
+
+    if (prefix < TALL_MAN_MIN_STEM) prefix = 0;
+    if (suffix < TALL_MAN_MIN_STEM) suffix = 0;
+
+    var shared = prefix + suffix;
+    if (shared < TALL_MAN_MIN_STEM) {
+      return refuse('the two names share fewer than ' + TALL_MAN_MIN_STEM
+        + ' characters, so almost every letter would be capitalised');
+    }
+
+    function render(name) {
+      return name.slice(0, prefix).toLowerCase()
+        + name.slice(prefix, name.length - suffix).toUpperCase()
+        + (suffix ? name.slice(name.length - suffix).toLowerCase() : '');
+    }
+    var renderedA = render(a), renderedB = render(b);
+    var share = Math.max(capitalisedShare(renderedA), capitalisedShare(renderedB));
+    if (share > TALL_MAN_MAX_CAPS + 1e-9) {
+      return refuse('it would capitalise ' + Math.round(share * 100)
+        + '% of the name, and past ' + Math.round(TALL_MAN_MAX_CAPS * 100)
+        + '% the rendering is harder to read than the name itself');
+    }
+
+    return {
+      ok: true,
+      a: renderedA,
+      b: renderedB,
+      prefix: a.slice(0, prefix).toLowerCase(),
+      suffix: suffix ? a.slice(a.length - suffix).toLowerCase() : '',
+      differing_a: a.slice(prefix, a.length - suffix).toUpperCase(),
+      differing_b: b.slice(prefix, b.length - suffix).toUpperCase(),
+      shared: shared,
+      capitalised_share: share,
+    };
+  }
+
+  var LASA_ALIGN = {
+    GAP: GAP,
+    MARK: MARK,
+    align: align,
+    alignmentRows: alignmentRows,
+    tallMan: tallMan,
+    renderAlignment: renderAlignment,
+  };
+
+  if (typeof module !== 'undefined' && module.exports) module.exports = LASA_ALIGN;
+  global.LASA_ALIGN = LASA_ALIGN;
+})(typeof globalThis !== 'undefined' ? globalThis : this);
+
+/*
+ * `lasa.normalise`, in the browser. (FORMULARY_TOOL.md A2)
+ *
+ * The formulary tool is the first thing in this project that normalises names
+ * *in the page*. Both existing tools ship names the Python pipeline had
+ * already normalised, so the rule lived in one place and could not drift. Here
+ * the pharmacy supplies raw pack text -- `Augmentin-625 (Duo) Tab` -- and the
+ * browser has to do what `lasa.normalise` does, or the pairs it reports are
+ * not the pairs the report and the register describe.
+ *
+ * So this is a port, and it is checked like one. `scripts/export_normalisation_
+ * sample.py` writes a fixed sample of raw names with the Python `norm_name`
+ * and `norm_core` beside them, and `web/formulary.test.html` asserts this file
+ * reproduces every one of them exactly. Not "within tolerance" -- these are
+ * strings.
+ *
+ * **The vocabularies are injected, never written here.** `configure()` takes
+ * the dosage-form, modifier and manufacturer token lists, and every function
+ * throws until it has been called. `scripts/build_formulary_tool.py` reads
+ * them out of `lasa.config` and `data/reference/dosage_forms.txt` at build
+ * time. A hand-maintained copy of a list that lives somewhere else is this
+ * project's third failure family and it has happened four times; a list that
+ * cannot be written down here cannot drift from the one it mirrors.
+ */
+(function (global) {
+  'use strict';
+
+  var VOCAB = null;
+
+  function configure(vocab) {
+    var required = ['dosage_forms', 'modifiers', 'manufacturers'];
+    for (var i = 0; i < required.length; i++) {
+      if (!Array.isArray(vocab && vocab[required[i]])) {
+        throw new Error('lasa-normalise: ' + required[i] + ' must be an array');
+      }
+    }
+    function setOf(list) {
+      var set = Object.create(null);
+      list.forEach(function (token) { set[String(token).toUpperCase()] = true; });
+      return set;
+    }
+    VOCAB = {
+      dosageForms: setOf(vocab.dosage_forms),
+      modifiers: setOf(vocab.modifiers),
+      manufacturers: setOf(vocab.manufacturers),
+      measurands: setOf(vocab.measurands || []),
+      brandVariantMaxToken: vocab.brand_variant_max_token || 3,
+      counts: {
+        dosage_forms: vocab.dosage_forms.length,
+        modifiers: vocab.modifiers.length,
+        manufacturers: vocab.manufacturers.length,
+      },
+    };
+    return VOCAB.counts;
+  }
+
+  function vocab() {
+    if (!VOCAB) throw new Error('lasa-normalise: configure() has not been called');
+    return VOCAB;
+  }
+
+  /* --------------------------------------------------------------- patterns
+   * Transcribed from `src/lasa/normalise.py`. Each one is a port of a named
+   * constant there, and keeps its name so the two can be read side by side.
+   */
+  var SEPARATORS = /[\-_,;:()\[\]{}+&'"\\]/g;
+  var WHITESPACE = /\s+/g;
+
+  var NUMBER = '\\d+(?:\\.\\d+)?';
+  var UNITS = 'MGS?|MCGS?|GMS?|G|ML|L|IU|U|MEQ|KG|MMOL|LAKH|MILLION|MN|MU|CRORE';
+  var QUANTITY = NUMBER + '\\s*(?:' + UNITS + '|%)?';
+  var STRENGTH_TOKEN = new RegExp('^' + QUANTITY + '(?:\\s*/\\s*' + QUANTITY + ')*$', 'i');
+  var BARE_UNIT_TOKEN = new RegExp('^(?:' + UNITS + '|%)$', 'i');
+  var ISOTOPE_SHAPE = /^(\d{1,3})([A-Za-z]{1,2})$/;
+  var NON_ALNUM = /[^A-Z0-9 ]/g;
+
+  var ISOTOPE_TWO_LETTER = ('NA CR FE CO CU ZN GA SE BR KR RB SR MO TC IN XE '
+    + 'SM LU RE TL AT BI RA AC').split(' ');
+  var ISOTOPE_ONE_LETTER = {
+    H: ['3'], C: ['11', '13', '14'], N: ['13'], O: ['15'], F: ['18'],
+    P: ['32', '33'], S: ['35'], K: ['40', '42'],
+    I: ['123', '124', '125', '131'], Y: ['90'],
+  };
+
+  function isIsotopeToken(token) {
+    var shape = ISOTOPE_SHAPE.exec(token);
+    if (!shape) return false;
+    var mass = shape[1], element = shape[2].toUpperCase();
+    if (element.length === 2) return ISOTOPE_TWO_LETTER.indexOf(element) !== -1;
+    var masses = ISOTOPE_ONE_LETTER[element];
+    return Boolean(masses) && masses.indexOf(mass) !== -1;
+  }
+
+  function tokens(name) {
+    return name.split(/\s+/).filter(function (t) { return t.length > 0; });
+  }
+
+  /* ------------------------------------------------------------ the steps */
+
+  function prepare(name) {
+    if (!name) return '';
+    return String(name).toUpperCase()
+      .replace(SEPARATORS, ' ').replace(WHITESPACE, ' ').trim();
+  }
+
+  function stripStrength(name) {
+    var kept = tokens(name).filter(function (token) {
+      return !(STRENGTH_TOKEN.test(token) || BARE_UNIT_TOKEN.test(token)
+               || isIsotopeToken(token));
+    });
+    return kept.length ? kept.join(' ') : name;
+  }
+
+  function stripDosageForm(name) {
+    var forms = vocab().dosageForms;
+    var parts = tokens(name);
+    if (parts.length <= 1) return name;
+    var kept = parts.filter(function (token) { return !forms[token]; });
+    return kept.length ? kept.join(' ') : name;
+  }
+
+  function stripManufacturerSuffix(name) {
+    var makers = vocab().manufacturers;
+    var parts = tokens(name);
+    while (parts.length > 1 && makers[parts[parts.length - 1]]) parts.pop();
+    return parts.join(' ');
+  }
+
+  function stripModifiers(name) {
+    var modifiers = vocab().modifiers;
+    var parts = tokens(name);
+    while (parts.length > 1 && modifiers[parts[parts.length - 1]]) parts.pop();
+    return parts.join(' ');
+  }
+
+  function collapseWhitespacePunctuation(name) {
+    return String(name).toUpperCase()
+      .replace(NON_ALNUM, ' ').replace(WHITESPACE, ' ').trim();
+  }
+
+  var SHARED_STEPS = [
+    ['prepare', prepare],
+    ['strip_strength', stripStrength],
+    ['strip_dosage_form', stripDosageForm],
+    ['strip_manufacturer_suffix', stripManufacturerSuffix],
+    ['collapse_whitespace_punctuation', collapseWhitespacePunctuation],
+  ];
+
+  function normaliseTrace(name) {
+    var raw = (name === null || name === undefined) ? '' : String(name);
+    var steps = [];
+    var current = raw;
+    for (var i = 0; i < SHARED_STEPS.length; i++) {
+      var after = SHARED_STEPS[i][1](current);
+      if (after !== current) {
+        steps.push({ raw: raw, step: SHARED_STEPS[i][0], before: current, after: after });
+      }
+      current = after;
+    }
+    var normCore = current;
+    var normName = collapseWhitespacePunctuation(stripModifiers(normCore));
+    if (normName !== normCore) {
+      steps.push({ raw: raw, step: 'strip_modifiers', before: normCore, after: normName });
+    }
+    // Never let normalisation destroy a name outright.
+    if (!normName) normName = normCore || collapseWhitespacePunctuation(raw);
+    return { raw: raw, norm_name: normName, norm_core: normCore, steps: steps };
+  }
+
+  function normalise(name) { return normaliseTrace(name).norm_name; }
+  function normaliseCore(name) { return normaliseTrace(name).norm_core; }
+
+  /* ------------------------------------------------------- categorisation
+   * `lasa.normalise.is_modifier_only_pair` / `is_brand_variant_pair`, and the
+   * part of `lasa.scoring.categorise` that does not need a dataset. The two
+   * ingredient-driven categories live in the formulary module, because there
+   * they depend on what the pharmacy supplied rather than on a name.
+   */
+
+  function isModifierOnlyPair(nameA, coreA, nameB, coreB) {
+    return nameA === nameB && coreA !== coreB;
+  }
+
+  function oneTokenEdit(a, b) {
+    if (Math.abs(a.length - b.length) > 1) return null;
+    var i;
+    if (a.length === b.length) {
+      var differing = [];
+      for (i = 0; i < a.length; i++) if (a[i] !== b[i]) differing.push(i);
+      if (differing.length !== 1) return null;
+      return { index: differing[0], a: a[differing[0]], b: b[differing[0]] };
+    }
+    var longer = a.length > b.length ? a : b;
+    var shorter = a.length > b.length ? b : a;
+    for (i = 0; i < longer.length; i++) {
+      var without = longer.slice(0, i).concat(longer.slice(i + 1));
+      if (without.join('\u0000') === shorter.join('\u0000')) {
+        return longer === a ? { index: i, a: longer[i], b: '' }
+                            : { index: i, a: '', b: longer[i] };
+      }
+    }
+    return null;
+  }
+
+  function isBrandVariantPair(nameA, nameB) {
+    var a = tokens(nameA), b = tokens(nameB);
+    if (!a.length || !b.length) return false;
+    if (a.join(' ') === b.join(' ')) return false;
+    var edit = oneTokenEdit(a, b);
+    if (!edit) return false;
+    if (Math.max(edit.a.length, edit.b.length) > vocab().brandVariantMaxToken) return false;
+    var longer = a.length >= b.length ? a : b;
+    var preceding = edit.index ? longer[edit.index - 1] : '';
+    if (vocab().measurands[preceding]) return false;
+    // The difference is in the first token: RAPICURE D against RAPPICURE D is
+    // a look-alike pair whose marker happens to match.
+    if (edit.index === 0) return false;
+    return true;
+  }
+
+  var LASA_NORMALISE = {
+    configure: configure,
+    prepare: prepare,
+    stripStrength: stripStrength,
+    stripDosageForm: stripDosageForm,
+    stripManufacturerSuffix: stripManufacturerSuffix,
+    stripModifiers: stripModifiers,
+    collapseWhitespacePunctuation: collapseWhitespacePunctuation,
+    isIsotopeToken: isIsotopeToken,
+    normalise: normalise,
+    normaliseCore: normaliseCore,
+    normaliseTrace: normaliseTrace,
+    isModifierOnlyPair: isModifierOnlyPair,
+    isBrandVariantPair: isBrandVariantPair,
+  };
+
+  if (typeof module !== 'undefined' && module.exports) module.exports = LASA_NORMALISE;
+  global.LASA_NORMALISE = LASA_NORMALISE;
+})(typeof globalThis !== 'undefined' ? globalThis : this);
+
+/*
+ * Enough of XLSX to read a formulary out of one. (FORMULARY_TOOL.md A1)
+ *
+ * A1 accepts CSV, TSV, XLSX or plain text, and a hospital formulary is an
+ * Excel file far more often than it is anything else. Rule 8 forbids a new
+ * dependency, so this reads the format directly -- which is less work than it
+ * sounds, because an .xlsx is a ZIP of XML and the browser can already do
+ * both halves: `DecompressionStream('deflate-raw')` inflates, and the sheet
+ * XML is regular enough to walk without a parser.
+ *
+ * **The scope is deliberately narrow.** It reads cell values from the first
+ * worksheet as text. It does not do formulas, dates, styles, number formats,
+ * merged cells or multiple sheets, and it says so when it meets one rather
+ * than returning something plausible. A formulary export has none of them.
+ *
+ * A stored (uncompressed) entry and a deflated one are both handled, because
+ * the small XML parts of a workbook are often stored, and a reader that
+ * assumed deflate would fail on exactly the sharedStrings table it needs.
+ */
+(function (global) {
+  'use strict';
+
+  var SIG_EOCD = 0x06054b50;
+  var SIG_EOCD64_LOCATOR = 0x07064b50;
+  var SIG_CENTRAL = 0x02014b50;
+  var SIG_LOCAL = 0x04034b50;
+
+  function utf8(bytes) {
+    if (typeof TextDecoder !== 'undefined') {
+      return new TextDecoder('utf-8').decode(bytes);
+    }
+    return Buffer.from(bytes).toString('utf8');   // Node, for the harness
+  }
+
+  function findEocd(view, length) {
+    // The comment field can be 65,535 bytes, so the signature is not
+    // necessarily at the very end.
+    var start = Math.max(0, length - 22 - 0xFFFF);
+    for (var offset = length - 22; offset >= start; offset--) {
+      if (view.getUint32(offset, true) === SIG_EOCD) return offset;
+    }
+    return -1;
+  }
+
+  function centralDirectory(buffer) {
+    var view = new DataView(buffer);
+    var bytes = new Uint8Array(buffer);
+    var eocd = findEocd(view, bytes.length);
+    if (eocd === -1) throw new Error('not a zip file: no end-of-central-directory record');
+    var count = view.getUint16(eocd + 10, true);
+    var offset = view.getUint32(eocd + 16, true);
+    if (offset === 0xFFFFFFFF || count === 0xFFFF) {
+      // Zip64. A formulary workbook is never four gigabytes, so rather than
+      // implement it, say which thing is not supported.
+      throw new Error('this workbook uses the zip64 format, which this reader '
+                      + 'does not handle -- save it as CSV instead');
+    }
+    var entries = {};
+    for (var i = 0; i < count; i++) {
+      if (view.getUint32(offset, true) !== SIG_CENTRAL) {
+        throw new Error('the workbook is damaged: its file index does not read');
+      }
+      var method = view.getUint16(offset + 10, true);
+      var compressedSize = view.getUint32(offset + 20, true);
+      var nameLength = view.getUint16(offset + 28, true);
+      var extraLength = view.getUint16(offset + 30, true);
+      var commentLength = view.getUint16(offset + 32, true);
+      var localOffset = view.getUint32(offset + 42, true);
+      var name = utf8(bytes.subarray(offset + 46, offset + 46 + nameLength));
+      entries[name] = { method: method, compressedSize: compressedSize,
+                        localOffset: localOffset };
+      offset += 46 + nameLength + extraLength + commentLength;
+    }
+    return { view: view, bytes: bytes, entries: entries };
+  }
+
+  async function inflate(bytes) {
+    if (typeof DecompressionStream === 'undefined') {
+      throw new Error('this browser cannot decompress a workbook -- save the '
+                      + 'formulary as CSV instead');
+    }
+    var stream = new Blob([bytes]).stream()
+      .pipeThrough(new DecompressionStream('deflate-raw'));
+    var buffer = await new Response(stream).arrayBuffer();
+    return new Uint8Array(buffer);
+  }
+
+  async function read(zip, name) {
+    var entry = zip.entries[name];
+    if (!entry) return null;
+    var offset = entry.localOffset;
+    if (zip.view.getUint32(offset, true) !== SIG_LOCAL) {
+      throw new Error('the workbook is damaged: ' + name + ' is not where its index says');
+    }
+    var nameLength = zip.view.getUint16(offset + 26, true);
+    var extraLength = zip.view.getUint16(offset + 28, true);
+    var start = offset + 30 + nameLength + extraLength;
+    var data = zip.bytes.subarray(start, start + entry.compressedSize);
+    if (entry.method === 0) return utf8(data);
+    if (entry.method === 8) return utf8(await inflate(data));
+    throw new Error('the workbook uses compression method ' + entry.method
+                    + ', which this reader does not handle');
+  }
+
+  /* ----------------------------------------------------------------- XML
+   * Walked rather than parsed. The two documents this touches are machine
+   * written and structurally flat -- a list of <si> and a list of <row> -- so
+   * a scanner over the tags is both shorter and more predictable here than a
+   * DOM would be, and it behaves identically in Node, where there is no
+   * DOMParser for the harness to use.
+   */
+  var ENTITIES = { lt: '<', gt: '>', amp: '&', quot: '"', apos: "'" };
+
+  function unescapeXml(text) {
+    return text.replace(/&(#x?[0-9a-fA-F]+|[a-z]+);/g, function (whole, body) {
+      if (body.charAt(0) === '#') {
+        var code = body.charAt(1) === 'x' || body.charAt(1) === 'X'
+          ? parseInt(body.slice(2), 16) : parseInt(body.slice(1), 10);
+        return isNaN(code) ? whole : String.fromCharCode(code);
+      }
+      return body in ENTITIES ? ENTITIES[body] : whole;
+    });
+  }
+
+  //: Every <t> inside one element, joined. A shared string split across runs
+  //: -- <r><t>PARA</t></r><r><t>CETAMOL</t></r> -- is one value, and a reader
+  //: taking only the first <t> silently truncates names that were typed with
+  //: a formatting change in the middle of them.
+  function textOf(xml) {
+    var out = '';
+    var pattern = /<t(?:\s[^>]*)?>([\s\S]*?)<\/t>|<t(?:\s[^>]*)?\/>/g;
+    var match;
+    while ((match = pattern.exec(xml)) !== null) {
+      out += unescapeXml(match[1] === undefined ? '' : match[1]);
+    }
+    return out;
+  }
+
+  function sharedStrings(xml) {
+    if (!xml) return [];
+    var out = [];
+    var pattern = /<si(?:\s[^>]*)?>([\s\S]*?)<\/si>|<si(?:\s[^>]*)?\/>/g;
+    var match;
+    while ((match = pattern.exec(xml)) !== null) {
+      out.push(match[1] === undefined ? '' : textOf(match[1]));
+    }
+    return out;
+  }
+
+  //: "BC12" -> 54. Used only when a cell carries an `r` attribute; writers
+  //: that omit it get sequential placement instead, which is what the format
+  //: says omission means.
+  function columnOf(reference) {
+    var letters = /^([A-Z]+)/.exec(String(reference).toUpperCase());
+    if (!letters) return null;
+    var index = 0;
+    for (var i = 0; i < letters[1].length; i++) {
+      index = index * 26 + (letters[1].charCodeAt(i) - 64);
+    }
+    return index - 1;
+  }
+
+  function sheetRows(xml, strings) {
+    var rows = [];
+    var rowPattern = /<row(?:\s[^>]*)?>([\s\S]*?)<\/row>|<row(\s[^>]*)?\/>/g;
+    var rowMatch;
+    while ((rowMatch = rowPattern.exec(xml)) !== null) {
+      var body = rowMatch[1] === undefined ? '' : rowMatch[1];
+      var cells = [];
+      var cellPattern = /<c(\s[^>]*?)?(?:\/>|>([\s\S]*?)<\/c>)/g;
+      var cellMatch, next = 0;
+      while ((cellMatch = cellPattern.exec(body)) !== null) {
+        var attributes = cellMatch[1] || '';
+        var inner = cellMatch[2] === undefined ? '' : cellMatch[2];
+        var reference = /\br="([^"]+)"/.exec(attributes);
+        var column = reference ? columnOf(reference[1]) : null;
+        if (column === null || column < next) column = next;
+        var type = /\bt="([^"]+)"/.exec(attributes);
+        type = type ? type[1] : 'n';
+        var value = '';
+        if (type === 's') {
+          var raw = /<v>([\s\S]*?)<\/v>/.exec(inner);
+          var index = raw ? parseInt(raw[1], 10) : NaN;
+          value = (!isNaN(index) && index < strings.length) ? strings[index] : '';
+        } else if (type === 'inlineStr') {
+          value = textOf(inner);
+        } else if (type === 'str') {
+          var formula = /<v>([\s\S]*?)<\/v>/.exec(inner);
+          value = formula ? unescapeXml(formula[1]) : '';
+        } else {
+          var number = /<v>([\s\S]*?)<\/v>/.exec(inner);
+          value = number ? unescapeXml(number[1]) : '';
+        }
+        while (cells.length < column) cells.push('');
+        cells.push(String(value).trim());
+        next = column + 1;
+      }
+      rows.push(cells);
+    }
+    return rows;
+  }
+
+  //: The first sheet in the workbook's own order, not the first file in the
+  //: archive -- a workbook whose sheets were reordered stores them under the
+  //: original names, so `sheet1.xml` is often not the first tab.
+  async function firstSheetPath(zip) {
+    var workbook = await read(zip, 'xl/workbook.xml');
+    var rels = await read(zip, 'xl/_rels/workbook.xml.rels');
+    var fallback = Object.keys(zip.entries).filter(function (name) {
+      return /^xl\/worksheets\/[^/]+\.xml$/.test(name);
+    }).sort();
+    if (!workbook || !rels) return { path: fallback[0] || null, name: null };
+    var sheet = /<sheet\b[^>]*\/?>/.exec(workbook);
+    if (!sheet) return { path: fallback[0] || null, name: null };
+    var id = /r:id="([^"]+)"/.exec(sheet[0]);
+    var label = /\bname="([^"]*)"/.exec(sheet[0]);
+    if (!id) return { path: fallback[0] || null, name: label ? unescapeXml(label[1]) : null };
+    var target = new RegExp('<Relationship\\b[^>]*Id="' + id[1] + '"[^>]*>').exec(rels);
+    var path = target ? /Target="([^"]+)"/.exec(target[0]) : null;
+    if (!path) return { path: fallback[0] || null, name: label ? unescapeXml(label[1]) : null };
+    var resolved = path[1].replace(/^\//, '');
+    if (resolved.indexOf('xl/') !== 0) resolved = 'xl/' + resolved;
+    if (!zip.entries[resolved]) resolved = fallback[0] || null;
+    return { path: resolved, name: label ? unescapeXml(label[1]) : null };
+  }
+
+  async function readXlsx(buffer) {
+    var zip = centralDirectory(buffer);
+    if (!zip.entries['[Content_Types].xml']) {
+      throw new Error('this is not an .xlsx workbook');
+    }
+    var located = await firstSheetPath(zip);
+    if (!located.path) throw new Error('this workbook has no worksheet in it');
+    var strings = sharedStrings(await read(zip, 'xl/sharedStrings.xml'));
+    var xml = await read(zip, located.path);
+    var rows = sheetRows(xml, strings).filter(function (row) {
+      return row.some(function (cell) { return cell !== ''; });
+    });
+    var sheets = Object.keys(zip.entries).filter(function (name) {
+      return /^xl\/worksheets\/[^/]+\.xml$/.test(name);
+    }).length;
+    return { rows: rows, sheet: located.name, n_sheets: sheets,
+             n_shared_strings: strings.length };
+  }
+
+  var LASA_XLSX = {
+    readXlsx: readXlsx,
+    sheetRows: sheetRows,
+    sharedStrings: sharedStrings,
+    columnOf: columnOf,
+    textOf: textOf,
+  };
+
+  if (typeof module !== 'undefined' && module.exports) module.exports = LASA_XLSX;
+  global.LASA_XLSX = LASA_XLSX;
+})(typeof globalThis !== 'undefined' ? globalThis : this);
+
+/*
+ * The formulary screen. (FORMULARY_TOOL.md Part A)
+ *
+ * A hospital pharmacy stocks 800-2,000 line items and has no way to find the
+ * look-alike pairs inside its own stock. The national register lists 60,706
+ * pairs across the whole Indian market, which a hospital reads and concludes
+ * it does not stock most of them. This inverts it: the pharmacy supplies its
+ * own list and gets back only the pairs that exist in its own building.
+ *
+ * Everything here is pure. The page calls `screen()` and renders what comes
+ * back; nothing in this file touches the DOM, fetches anything, or knows what
+ * a chip looks like. That is what makes `web/formulary.test.html` able to
+ * check the counts, the sections and the export against each other rather
+ * than against a constant.
+ *
+ * **What this does not do.** It does not say how dangerous a pair is. The
+ * composite scores below chance against hard negatives -- AUC 0.004 -- the
+ * fitted model's coefficients were never tested against human judgement, and
+ * the survey that would have tested them returned no result. There is no
+ * validated basis for a verdict here, and the failure would be asymmetric: a
+ * false "low risk" on a genuinely confusable pair tells a pharmacist to stop
+ * worrying about something they should worry about. So the output is two
+ * names, a Tall Man rendering and checkable facts, and the pharmacist judges.
+ */
+(function (global) {
+  'use strict';
+
+  var METRICS = global.LASA;
+  var ALIGN = global.LASA_ALIGN;
+  var NORM = global.LASA_NORMALISE;
+  if (typeof require === 'function' && typeof module !== 'undefined') {
+    METRICS = METRICS || require('./lasa-metrics.js');
+    ALIGN = ALIGN || require('./lasa-align.js');
+    NORM = NORM || require('./lasa-normalise.js');
+  }
+
+  var SEP = String.fromCharCode(31);   // a key separator no drug name carries
+
+  var CONFIG = null;
+
+  /* Injected by `scripts/build_formulary_tool.py` from `lasa.config` and the
+     run objects. Nothing here is written as a literal: a threshold typed into
+     a second file is a threshold that can be edited in one place while a test
+     reads the other. */
+  function configure(options) {
+    if (typeof options.reporting_floor !== 'number') {
+      throw new Error('lasa-formulary: reporting_floor is required');
+    }
+    if (!options.weights) throw new Error('lasa-formulary: weights are required');
+    NORM.configure(options.vocabularies);
+    CONFIG = {
+      floor: options.reporting_floor,
+      weights: options.weights,
+      metricNames: options.metric_names || METRICS.METRIC_NAMES,
+      maxRows: options.max_rows || 5000,
+      tallman: options.ismp_tallman || {},
+      figures: options.figures || {},
+      build: options.build || {},
+    };
+    return CONFIG;
+  }
+
+  function config() {
+    if (!CONFIG) throw new Error('lasa-formulary: configure() has not been called');
+    return CONFIG;
+  }
+
+  /* ================================================================ input */
+
+  /* Delimiter by counting, not by extension. A hospital's export is as likely
+     to be called `.txt` as `.csv`, and a `.csv` from an Indian ERP is often
+     semicolon-separated. Counted over several lines rather than the first,
+     because a title row above the header is common and has no delimiters in
+     it at all. */
+  function detectDelimiter(text) {
+    var lines = text.split(/\r\n|\r|\n/).filter(function (l) { return l.trim(); })
+                    .slice(0, 20);
+    var candidates = ['\t', ',', ';', '|'];
+    var best = null, bestScore = -1;
+    candidates.forEach(function (delimiter) {
+      var counts = lines.map(function (line) {
+        return splitDelimited(line, delimiter).length;
+      });
+      var fields = counts.length ? Math.min.apply(null, counts) : 0;
+      if (fields < 2) return;
+      // Consistency first: a delimiter that gives the same field count on
+      // every line is the delimiter, even if another appears more often.
+      var consistent = counts.filter(function (n) { return n === counts[0]; }).length;
+      var score = consistent * 100 + fields;
+      if (score > bestScore) { bestScore = score; best = delimiter; }
+    });
+    return best;   // null means "one column of names", which A1 also accepts
+  }
+
+  /* RFC 4180 quoting, because a formulary line is `"PARACETAMOL, 500MG",...`
+     often enough that ignoring quotes shifts every column after it. */
+  function splitDelimited(line, delimiter) {
+    var out = [], field = '', quoted = false;
+    for (var i = 0; i < line.length; i++) {
+      var ch = line.charAt(i);
+      if (quoted) {
+        if (ch === '"') {
+          if (line.charAt(i + 1) === '"') { field += '"'; i++; }
+          else quoted = false;
+        } else field += ch;
+      } else if (ch === '"') {
+        quoted = true;
+      } else if (ch === delimiter) {
+        out.push(field); field = '';
+      } else field += ch;
+    }
+    out.push(field);
+    return out.map(function (value) { return value.trim(); });
+  }
+
+  function parseText(text) {
+    var withoutBom = String(text).replace(/^\uFEFF/, '');
+    var lines = withoutBom.split(/\r\n|\r|\n/);
+    var delimiter = detectDelimiter(withoutBom);
+    var rows = [];
+    lines.forEach(function (line) {
+      if (!line.trim()) return;
+      rows.push(delimiter ? splitDelimited(line, delimiter) : [line.trim()]);
+    });
+    return { rows: rows, delimiter: delimiter };
+  }
+
+  /* --------------------------------------------------------------- header
+   * A1: infer from headers, then show the mapping and let the user correct
+   * it. Never guess silently -- so this returns what it inferred *and* the
+   * evidence, and the page renders both before anything runs.
+   */
+  var FIELDS = [
+    { key: 'name', label: 'Product name', required: true,
+      words: ['product', 'name', 'item', 'drug', 'brand', 'description',
+              'medicine', 'trade'] },
+    { key: 'ingredient', label: 'Ingredient',
+      words: ['ingredient', 'generic', 'molecule', 'salt', 'composition',
+              'active', 'inn'] },
+    { key: 'strength', label: 'Strength',
+      words: ['strength', 'dose', 'dosage', 'potency'] },
+    { key: 'form', label: 'Dosage form',
+      words: ['form', 'formulation', 'presentation', 'pack'] },
+    { key: 'route', label: 'Route', words: ['route', 'administration'] },
+    { key: 'manufacturer', label: 'Manufacturer',
+      words: ['manufacturer', 'maker', 'supplier', 'company', 'vendor',
+              'marketer'] },
+    { key: 'location', label: 'Storage location',
+      words: ['location', 'shelf', 'bin', 'store', 'storage', 'rack', 'ward',
+              'aisle'] },
+    { key: 'atc', label: 'ATC code', words: ['atc', 'anatomical'] },
+  ];
+
+  //: A header row is a header row when its cells read like labels rather than
+  //: like products. Decided on the whole row, because a single column of
+  //: names has no other column to compare against.
+  function looksLikeHeader(cells) {
+    var hits = 0;
+    cells.forEach(function (cell) {
+      var text = String(cell).toLowerCase();
+      FIELDS.forEach(function (field) {
+        if (field.words.some(function (w) { return text.indexOf(w) !== -1; })) hits++;
+      });
+    });
+    return hits > 0;
+  }
+
+  function detectColumns(rows) {
+    if (!rows.length) return { header: null, mapping: {}, evidence: {}, body: [] };
+    var first = rows[0];
+    var hasHeader = looksLikeHeader(first);
+    var header = hasHeader ? first.map(String) : null;
+    var body = hasHeader ? rows.slice(1) : rows;
+    var mapping = {}, evidence = {};
+    FIELDS.forEach(function (field) { mapping[field.key] = null; });
+
+    if (header) {
+      var taken = {};
+      FIELDS.forEach(function (field) {
+        var best = null, bestScore = 0;
+        header.forEach(function (cell, index) {
+          if (taken[index]) return;
+          var text = String(cell).toLowerCase().replace(/[^a-z]+/g, ' ').trim();
+          var score = 0;
+          field.words.forEach(function (word) {
+            if (text === word) score = Math.max(score, 3);
+            else if ((' ' + text + ' ').indexOf(' ' + word + ' ') !== -1) score = Math.max(score, 2);
+            else if (text.indexOf(word) !== -1) score = Math.max(score, 1);
+          });
+          if (score > bestScore) { bestScore = score; best = index; }
+        });
+        if (best !== null) {
+          mapping[field.key] = best;
+          evidence[field.key] = { column: header[best], score: bestScore };
+          taken[best] = true;
+        }
+      });
+    }
+    // A single column is the product name whatever it is called, and a file
+    // with no header row has its names in the first column -- both are the
+    // paste-a-list case A1 requires beside the upload.
+    if (mapping.name === null || mapping.name === undefined) {
+      mapping.name = 0;
+      evidence.name = { column: header ? header[0] : '(first column)',
+                        score: 0, assumed: true };
+    }
+    return { header: header, mapping: mapping, evidence: evidence, body: body };
+  }
+
+  /* ============================================================== screening */
+
+  function composite(metrics) {
+    var weights = config().weights, names = config().metricNames;
+    var total = 0, weighted = 0;
+    for (var i = 0; i < names.length; i++) {
+      var name = names[i];
+      if (!(name in metrics)) throw new Error('missing metric: ' + name);
+      weighted += metrics[name] * weights[name];
+      total += weights[name];
+    }
+    if (total <= 0) throw new Error('weights must sum to a positive number');
+    return weighted / total;
+  }
+
+  function ingredientSet(value) {
+    if (!value) return [];
+    return String(value).split(/[|,;+]/).map(function (part) {
+      return part.trim().toLowerCase();
+    }).filter(Boolean);
+  }
+
+  function buildItems(body, mapping) {
+    var items = [];
+    for (var i = 0; i < body.length; i++) {
+      var row = body[i];
+      var raw = String(row[mapping.name] === undefined ? '' : row[mapping.name]).trim();
+      if (!raw) continue;
+      var given = {};
+      /* eslint-disable no-loop-func */
+      FIELDS.forEach(function (field) {
+        if (field.key === 'name') return;
+        var index = mapping[field.key];
+        if (index === null || index === undefined) return;
+        var value = row[index];
+        if (value === undefined || value === null) return;
+        value = String(value).trim();
+        if (value) given[field.key] = value;
+      });
+      /* eslint-enable no-loop-func */
+      var trace = NORM.normaliseTrace(raw);
+      items.push({
+        index: items.length,
+        row: i + 1,
+        raw: raw,
+        norm_name: trace.norm_name,
+        norm_core: trace.norm_core,
+        modifier_stripped: trace.norm_name !== trace.norm_core,
+        given: given,
+        ingredients: ingredientSet(given.ingredient),
+        atc: (given.atc || '').toUpperCase().replace(/[^A-Z0-9]/g, ''),
+      });
+    }
+    return items;
+  }
+
+  /* --------------------------------------------------------------- chips
+   * A3: short, glanceable, no danger language, each independently checkable.
+   * Every chip carries where it came from, because a fact the pharmacy gave
+   * and a fact this page worked out are not the same kind of claim and the
+   * page has to be able to say which is which.
+   *
+   * One specified chip is absent and its absence is deliberate: ISMP's
+   * high-alert medication list is not in this repository, and typing one from
+   * memory would be inventing reference data. The method page says so.
+   */
+  var FORM_WORDS = {
+    tablet: ['TABLET', 'TAB', 'TABS', 'CAPLET'],
+    capsule: ['CAPSULE', 'CAP', 'CAPS'],
+    injection: ['INJECTION', 'INJ', 'VIAL', 'AMPOULE', 'AMPULE'],
+    syrup: ['SYRUP', 'SYP', 'SUSPENSION', 'SUSP', 'ELIXIR'],
+    drops: ['DROPS', 'DROP'],
+    cream: ['CREAM', 'OINTMENT', 'GEL', 'LOTION', 'OINT'],
+    inhaler: ['INHALER', 'ROTACAPS', 'RESPULES', 'TRANSHALER'],
+  };
+
+  var ROUTE_OF_FORM = {
+    tablet: 'oral', capsule: 'oral', syrup: 'oral',
+    injection: 'parenteral', drops: 'topical', cream: 'topical',
+    inhaler: 'inhaled',
+  };
+
+  function formOf(item) {
+    var supplied = (item.given.form || '').toUpperCase();
+    var haystack = supplied || String(item.raw).toUpperCase();
+    var found = null;
+    Object.keys(FORM_WORDS).forEach(function (form) {
+      FORM_WORDS[form].forEach(function (word) {
+        if (found) return;
+        if (new RegExp('(^|[^A-Z])' + word + '([^A-Z]|$)').test(haystack)) found = form;
+      });
+    });
+    if (!found) return null;
+    return { form: found, source: supplied ? 'given' : 'inferred' };
+  }
+
+  function routeOf(item) {
+    var supplied = (item.given.route || '').toLowerCase();
+    if (supplied) return { route: supplied, source: 'given' };
+    var form = formOf(item);
+    if (form && ROUTE_OF_FORM[form.form]) {
+      return { route: ROUTE_OF_FORM[form.form], source: form.source };
+    }
+    return null;
+  }
+
+  function chipsFor(a, b) {
+    var chips = [];
+    // A3: only when both ATC codes are present. Neither is inferred here --
+    // inferring one needs the reference dataset, which is not shipped while
+    // the licence gate is open.
+    if (a.atc && b.atc) {
+      var same = a.atc.charAt(0) === b.atc.charAt(0);
+      chips.push({
+        text: same ? 'Same body system' : 'Different body systems',
+        detail: a.atc + ' / ' + b.atc,
+        source: 'given', kind: 'atc',
+      });
+    }
+    var formA = formOf(a), formB = formOf(b);
+    if (formA && formB) {
+      var formSource = (formA.source === 'given' && formB.source === 'given')
+        ? 'given' : 'inferred';
+      if (formA.form === formB.form) {
+        chips.push({ text: 'Both ' + formA.form + 's', source: formSource,
+                     kind: 'form' });
+      } else {
+        chips.push({ text: 'One ' + formA.form + ', one ' + formB.form,
+                     source: formSource, kind: 'form' });
+      }
+    }
+    var routeA = routeOf(a), routeB = routeOf(b);
+    if (routeA && routeB && routeA.route !== routeB.route) {
+      chips.push({
+        text: 'One ' + routeA.route + ', one ' + routeB.route,
+        source: (routeA.source === 'given' && routeB.source === 'given')
+          ? 'given' : 'inferred',
+        kind: 'route',
+      });
+    }
+    if (a.given.manufacturer && b.given.manufacturer
+        && a.given.manufacturer.toLowerCase() === b.given.manufacturer.toLowerCase()) {
+      chips.push({ text: 'Same manufacturer', detail: a.given.manufacturer,
+                   source: 'given', kind: 'manufacturer' });
+    }
+    if (a.given.location && b.given.location
+        && a.given.location.toLowerCase() === b.given.location.toLowerCase()) {
+      chips.push({ text: 'Stored in the same area', detail: a.given.location,
+                   source: 'given', kind: 'location' });
+    }
+    return chips;
+  }
+
+  /* ------------------------------------------------------------- Tall Man */
+
+  function tallManKey(a, b) {
+    var x = String(a).toUpperCase(), y = String(b).toUpperCase();
+    return x < y ? x + SEP + y : y + SEP + x;
+  }
+
+  function tallManFor(nameA, nameB) {
+    var published = config().tallman[tallManKey(nameA, nameB)];
+    if (published) {
+      var flipped = String(nameA).toUpperCase() !== published.name_a;
+      return {
+        source: 'ismp',
+        a: flipped ? published.published_b : published.published_a,
+        b: flipped ? published.published_a : published.published_b,
+        a_is_rendering: flipped ? published.b_is_rendering : published.a_is_rendering,
+        b_is_rendering: flipped ? published.a_is_rendering : published.b_is_rendering,
+      };
+    }
+    var computed = ALIGN.tallMan(nameA, nameB);
+    if (!computed.ok) return { source: 'none', reason: computed.reason };
+    return { source: 'computed', a: computed.a, b: computed.b,
+             capitalised_share: computed.capitalised_share };
+  }
+
+  /* ------------------------------------------------------------- sections */
+
+  var SECTIONS = ['ranked', 'same_ingredient', 'modifier_only', 'brand_variant',
+                  'near_duplicate'];
+
+  //: `lasa.scoring.categorise`, with the two ingredient-driven branches
+  //: conditional on the pharmacy having supplied ingredients. Where they have
+  //: not, no pair can be shown to be one product recorded twice and none is
+  //: claimed to be -- the same rule the Python module applies to a dataset
+  //: with no manufacturer column.
+  function categorise(a, b) {
+    if (NORM.isModifierOnlyPair(a.norm_name, a.norm_core, b.norm_name, b.norm_core)) {
+      return 'modifier_only';
+    }
+    var shared = a.ingredients.filter(function (value) {
+      return b.ingredients.indexOf(value) !== -1;
+    });
+    var sameMaker = Boolean(a.given.manufacturer) && Boolean(b.given.manufacturer)
+      && a.given.manufacturer.toLowerCase() === b.given.manufacturer.toLowerCase();
+    if (shared.length && sameMaker) return 'near_duplicate';
+    if (shared.length) return 'same_ingredient';
+    if (a.norm_name.replace(/ /g, '') === b.norm_name.replace(/ /g, '')) {
+      return 'modifier_only';
+    }
+    if (NORM.isBrandVariantPair(a.norm_name, b.norm_name)) return 'brand_variant';
+    return 'ranked';
+  }
+
+  /* ================================================================ screen */
+
+  /* One pair loop, two drivers. `screen()` drains this to the end; the page
+     drives the same generator a slice at a time so the progress bar moves and
+     the tab stays alive. A second loop written for the asynchronous case
+     would be a second implementation of the thing this tool does, and it
+     would agree with the first until the day it did not. */
+  function* screenGenerator(items, options) {
+    options = options || {};
+    var cfg = config();
+    var floor = cfg.floor;
+
+    var usable = items.filter(function (item) { return item.norm_name.length > 0; });
+    var prepared = usable.map(function (item) { return METRICS.prepare(item.norm_name); });
+
+    var pairs = [];
+    var compared = 0;
+
+    for (var i = 0; i < usable.length; i++) {
+      for (var j = i + 1; j < usable.length; j++) {
+        compared++;
+        var metrics = METRICS.metricsPrepared(prepared[i], prepared[j]);
+        var score = composite(metrics);
+        if (score < floor) continue;
+        var a = usable[i], b = usable[j];
+        pairs.push({
+          a: a, b: b,
+          raw_a: a.raw, raw_b: b.raw,
+          name_a: a.norm_name, name_b: b.norm_name,
+          lev: metrics.lev, jw: metrics.jw, dice: metrics.dice,
+          dmeta: metrics.dmeta, soundex: metrics.soundex,
+          composite: score,
+          section: categorise(a, b),
+          tallman: tallManFor(a.norm_name, b.norm_name),
+          chips: chipsFor(a, b),
+        });
+      }
+      if (i % 25 === 0) yield { done: i + 1, total: usable.length };
+    }
+    yield { done: usable.length, total: usable.length };
+
+    pairs.sort(function (x, y) {
+      if (y.composite !== x.composite) return y.composite - x.composite;
+      return x.name_a < y.name_a ? -1 : (x.name_a > y.name_a ? 1 : 0);
+    });
+    pairs.forEach(function (pair, index) { pair.id = index + 1; });
+
+    var bySection = {};
+    SECTIONS.forEach(function (section) { bySection[section] = []; });
+    pairs.forEach(function (pair) { bySection[pair.section].push(pair); });
+
+    return {
+      items: items,
+      usable: usable,
+      pairs: pairs,
+      sections: bySection,
+      section_names: SECTIONS,
+      floor: floor,
+      counts: {
+        rows: items.length,
+        usable: usable.length,
+        compared: compared,
+        pairs: pairs.length,
+        ranked: bySection.ranked.length,
+      },
+      completeness: completeness(items),
+    };
+  }
+
+  function screen(items, options) {
+    var run = screenGenerator(items, options);
+    var step = run.next();
+    while (!step.done) step = run.next();
+    return step.value;
+  }
+
+  /* A2: report what could not be matched, before showing results. "If 300 of
+     1,200 names found no ingredient, say so before showing results. A
+     silently reduced analysis is this project's oldest failure." */
+  function completeness(items) {
+    var report = { rows: items.length, fields: {} };
+    FIELDS.forEach(function (field) {
+      if (field.key === 'name') return;
+      var present = items.filter(function (item) {
+        return Boolean(item.given[field.key]);
+      }).length;
+      report.fields[field.key] = { label: field.label, present: present,
+                                   absent: items.length - present };
+    });
+    report.unnormalisable = items.filter(function (item) {
+      return !item.norm_name;
+    }).length;
+    var seen = {}, duplicates = 0;
+    items.forEach(function (item) {
+      if (!item.norm_name) return;
+      if (seen[item.norm_name]) duplicates++;
+      else seen[item.norm_name] = true;
+    });
+    report.duplicate_normalised = duplicates;
+    return report;
+  }
+
+  /* ================================================================ export */
+
+  var EXPORT_COLUMNS = [
+    'pair_id', 'section', 'raw_a', 'raw_b', 'name_a', 'name_b',
+    'lev', 'jw', 'dice', 'dmeta', 'soundex', 'composite',
+    'tall_man_a', 'tall_man_b', 'tall_man_source', 'tall_man_reason',
+    'chips', 'atc_a', 'atc_b', 'ingredient_a', 'ingredient_b',
+    'manufacturer_a', 'manufacturer_b', 'location_a', 'location_b',
+  ];
+
+  function csvCell(value) {
+    var text = value === null || value === undefined ? '' : String(value);
+    return /[",\n]/.test(text) ? '"' + text.replace(/"/g, '""') + '"' : text;
+  }
+
+  function exportRows(result) {
+    return result.pairs.map(function (pair) {
+      return {
+        pair_id: pair.id,
+        section: pair.section,
+        raw_a: pair.raw_a, raw_b: pair.raw_b,
+        name_a: pair.name_a, name_b: pair.name_b,
+        lev: pair.lev.toFixed(6), jw: pair.jw.toFixed(6),
+        dice: pair.dice.toFixed(6), dmeta: pair.dmeta.toFixed(6),
+        soundex: pair.soundex.toFixed(6), composite: pair.composite.toFixed(6),
+        tall_man_a: pair.tallman.a || '', tall_man_b: pair.tallman.b || '',
+        tall_man_source: pair.tallman.source,
+        tall_man_reason: pair.tallman.reason || '',
+        chips: pair.chips.map(function (chip) {
+          return chip.text + (chip.source === 'inferred' ? ' (inferred)' : '');
+        }).join(' | '),
+        atc_a: pair.a.atc, atc_b: pair.b.atc,
+        ingredient_a: pair.a.given.ingredient || '',
+        ingredient_b: pair.b.given.ingredient || '',
+        manufacturer_a: pair.a.given.manufacturer || '',
+        manufacturer_b: pair.b.given.manufacturer || '',
+        location_a: pair.a.given.location || '',
+        location_b: pair.b.given.location || '',
+      };
+    });
+  }
+
+  function toCsv(result) {
+    var rows = exportRows(result);
+    var lines = [EXPORT_COLUMNS.join(',')];
+    rows.forEach(function (row) {
+      lines.push(EXPORT_COLUMNS.map(function (column) {
+        return csvCell(row[column]);
+      }).join(','));
+    });
+    return lines.join('\n') + '\n';
+  }
+
+  /* -------------------------------------------------------- what changed
+   * A5: on a second upload, accept the previous export and show only what is
+   * new. A hospital screens quarterly and wants three pairs to review, not
+   * forty. Keyed on the normalised pair, because the raw text of a line item
+   * changes when a supplier changes and the pair has not.
+   */
+  function pairKey(nameA, nameB) {
+    return nameA < nameB ? nameA + SEP + nameB : nameB + SEP + nameA;
+  }
+
+  function parsePreviousExport(text) {
+    var parsed = parseText(text);
+    var empty = { keys: {}, items: {}, rows: 0 };
+    if (!parsed.rows.length) {
+      empty.problem = 'the file is empty';
+      return empty;
+    }
+    var header = parsed.rows[0].map(function (cell) { return cell.toLowerCase(); });
+    var indexA = header.indexOf('name_a'), indexB = header.indexOf('name_b');
+    if (indexA === -1 || indexB === -1) {
+      empty.problem = 'this is not an export from this tool: it has no '
+        + 'name_a and name_b columns';
+      return empty;
+    }
+    var keys = {}, items = {}, rows = 0;
+    parsed.rows.slice(1).forEach(function (row) {
+      var a = (row[indexA] || '').trim(), b = (row[indexB] || '').trim();
+      if (!a || !b) return;
+      keys[pairKey(a, b)] = true;
+      items[a] = true; items[b] = true;
+      rows++;
+    });
+    return { keys: keys, items: items, rows: rows, problem: null };
+  }
+
+  function compare(result, previous) {
+    var newPairs = result.pairs.filter(function (pair) {
+      return !previous.keys[pairKey(pair.name_a, pair.name_b)];
+    });
+    var seen = {};
+    var newItems = [];
+    result.usable.forEach(function (item) {
+      if (previous.items[item.norm_name] || seen[item.norm_name]) return;
+      seen[item.norm_name] = true;
+      newItems.push(item);
+    });
+    var present = {};
+    result.usable.forEach(function (item) { present[item.norm_name] = true; });
+    var goneItems = Object.keys(previous.items).filter(function (name) {
+      return !present[name];
+    }).sort();
+    var stillHere = {};
+    result.pairs.forEach(function (pair) {
+      stillHere[pairKey(pair.name_a, pair.name_b)] = true;
+    });
+    var gonePairs = Object.keys(previous.keys).filter(function (key) {
+      return !stillHere[key];
+    }).length;
+    return {
+      previous_rows: previous.rows,
+      new_pairs: newPairs,
+      new_items: newItems,
+      gone_items: goneItems,
+      gone_pairs: gonePairs,
+      unchanged_pairs: result.pairs.length - newPairs.length,
+    };
+  }
+
+  /* ============================================================== forbidden
+   * A6.5: no verdict language appears in any rendered output. The list lives
+   * here rather than in the test, because a page and a test with separate
+   * copies of it is the hand-maintained-list family and this project has four
+   * of those. The page's own checks read this array; so does
+   * `web/formulary.test.html`.
+   */
+  var FORBIDDEN_TERMS = [
+    'high risk', 'high-risk', 'low risk', 'low-risk', 'medium risk',
+    'risk level', 'risk score', 'risk tier', 'risk rating', 'severity',
+    'severe', 'critical', 'dangerous', 'danger', 'hazard', 'hazardous',
+    'unsafe', 'urgent', 'traffic light', 'red flag', 'extreme',
+    'life-threatening', 'double sign-off', 'store separately',
+  ];
+
+  /* The page has to be able to *say* it gives no verdict, and the sentence
+     that says so contains the word the rule forbids. Widening the rule to let
+     the word through wherever it appears would be weakening the test to make
+     it pass -- the thing this project does not do.
+     
+     So the ban is not widened, it is split. Output about a pair -- the cards,
+     the chips, the printed sheet, the labels, the export -- may contain none
+     of these terms at all, and that is stricter than before because it now
+     covers the CSV. Prose about the tool may contain them only inside one of
+     the sentences written down here, verbatim. A new use of "dangerous"
+     anywhere fails until somebody adds the sentence, and an exemption for a
+     sentence the page no longer contains fails too, so the list cannot
+     quietly outlive what it was for. */
+  var PERMITTED_NEGATIONS = [
+    'It does not say how dangerous any pair is',
+    'nothing here is called a score of how dangerous a pair is',
+    'there is no validated basis for saying how dangerous a pair is',
+    'not risk assessments',
+  ];
+
+  //: Whitespace collapsed and case dropped, on both sides. A sentence in the
+  //: template wraps across two source lines, so `textContent` carries a
+  //: newline and an indent inside it; and the same sentence appears once
+  //: mid-paragraph and once opening one, so its first letter differs. Either
+  //: alone kills the exemption and the check then fails on the very sentence
+  //: it exists to allow. Neither widens it: the sentence still has to be
+  //: there, word for word.
+  function flatten(text) {
+    return String(text).replace(/\s+/g, ' ').trim().toLowerCase();
+  }
+
+  function forbiddenIn(text, options) {
+    var haystack = flatten(text);
+    if (options && options.allowPermittedNegations) {
+      PERMITTED_NEGATIONS.forEach(function (sentence) {
+        haystack = haystack.split(flatten(sentence)).join(' ');
+      });
+    }
+    return FORBIDDEN_TERMS.filter(function (term) {
+      return haystack.indexOf(term) !== -1;
+    });
+  }
+
+  //: Which of the sanctioned sentences are actually on the page. An exemption
+  //: nobody uses is a hole nobody is watching.
+  function permittedNegationsPresent(text) {
+    var haystack = flatten(text);
+    return PERMITTED_NEGATIONS.filter(function (sentence) {
+      return haystack.indexOf(flatten(sentence)) !== -1;
+    });
+  }
+
+  var LASA_FORMULARY = {
+    configure: configure,
+    FIELDS: FIELDS,
+    SECTIONS: SECTIONS,
+    EXPORT_COLUMNS: EXPORT_COLUMNS,
+    FORBIDDEN_TERMS: FORBIDDEN_TERMS,
+    PERMITTED_NEGATIONS: PERMITTED_NEGATIONS,
+    detectDelimiter: detectDelimiter,
+    splitDelimited: splitDelimited,
+    parseText: parseText,
+    looksLikeHeader: looksLikeHeader,
+    detectColumns: detectColumns,
+    buildItems: buildItems,
+    composite: composite,
+    categorise: categorise,
+    chipsFor: chipsFor,
+    formOf: formOf,
+    routeOf: routeOf,
+    tallManFor: tallManFor,
+    tallManKey: tallManKey,
+    screen: screen,
+    screenGenerator: screenGenerator,
+    completeness: completeness,
+    exportRows: exportRows,
+    toCsv: toCsv,
+    parsePreviousExport: parsePreviousExport,
+    compare: compare,
+    pairKey: pairKey,
+    forbiddenIn: forbiddenIn,
+    permittedNegationsPresent: permittedNegationsPresent,
+  };
+
+  if (typeof module !== 'undefined' && module.exports) module.exports = LASA_FORMULARY;
+  global.LASA_FORMULARY = LASA_FORMULARY;
+})(typeof globalThis !== 'undefined' ? globalThis : this);
+
+</script>
+<script>
+window.LASA_FORMULARY_CONFIG = {"reporting_floor":0.45,"weights":{"lev":0.2,"jw":0.2,"dice":0.15,"dmeta":0.3,"soundex":0.15},"metric_names":["lev","jw","dice","dmeta","soundex"],"metric_labels":{"lev":"Levenshtein","jw":"Jaro-Winkler","dice":"Bigram Dice","dmeta":"Double Metaphone","soundex":"Soundex"},"max_contribution":0.3,"max_rows":5000,"fitted_model":{"name":"Model 1 — logistic regression on five string metrics","metrics":["lev","jw","dice","dmeta","soundex"],"mean":[0.5552774808436662,0.7993739145940426,0.46968689626779436,0.6019678927829397,0.12316715542521994],"scale":[0.13774265290995516,0.0969112348365349,0.18563935836537898,0.14164645674195053,0.3286289811469458],"coef":[1.1811147015713854,-0.6279456160715712,-1.047172240509071,-0.26382687319872233,-0.3392463282132193],"intercept":-0.14265165114358672,"hand_chosen_weights":{"lev":0.2,"jw":0.2,"dice":0.15,"dmeta":0.3,"soundex":0.15}},"vocabularies":{"dosage_forms":["AMP","AMPOULE","CAP","CAPS","CAPSULE","CAPSULES","CHEWABLE","CREAM","DISPERSIBLE","DPI","DROP","DROPS","DT","DUSTING","EAR","EFFERVESCENT","ELIXIR","EYE","GARGLE","GEL","GRANULES","IM","INFUSION","INHALATION","INHALER","INJ","INJECTION","IV","KIT","LIQUID","LOTION","LOZENGE","MD","MDI","MOUTHWASH","NASAL","NEBULISER","ODT","OINT","OINTMENT","ORAL","PATCH","PESSARY","PFS","POWDER","PREFILLED","RESPULE","RESPULES","ROTACAP","ROTACAPS","SACHET","SC","SHAMPOO","SOAP","SOLN","SOLUTION","SPRAY","SUPPOSITORY","SUSP","SUSPENSION","SYR","SYRINGE","SYRUP","TAB","TABLET","TABLETS","TABS","TOPICAL","VIAL"],"modifiers":["ACTIVE","AM","CR","DS","DSR","DUO","ER","FORTE","H","KID","L","LA","LB","M","MAX","MR","NEO","OD","P","PLUS","RETARD","SR","TOTAL","TR","XL","XR","XT"],"manufacturers":["BIOTECH","CO","COMPANY","HEALTH","HEALTHCARE","INC","INDIA","LAB","LABORATORIES","LABS","LIFE","LIFESCIENCES","LIMITED","LTD","ORGANICS","PHARMA","PHARMACEUTICAL","PHARMACEUTICALS","PRIVATE","PVT","REMEDIES","SCIENCES"],"measurands":["CLASS","FACTOR","GRADE","GROUP","STAGE","TYPE","VITAMIN"],"brand_variant_max_token":3},"ismp_tallman":{"ACETAMINOPHEN\u001fACETAZOLAMIDE":{"name_a":"ACETAMINOPHEN","name_b":"ACETAZOLAMIDE","published_a":"acetaminophen","published_b":"acetaZOLAMIDE","a_is_rendering":false,"b_is_rendering":true},"ACETAZOLAMIDE\u001fACETOHEXAMIDE":{"name_a":"ACETAZOLAMIDE","name_b":"ACETOHEXAMIDE","published_a":"acetaZOLAMIDE","published_b":"acetoHEXAMIDE","a_is_rendering":true,"b_is_rendering":true},"ACTIVASE\u001fTNKASE":{"name_a":"ACTIVASE","name_b":"TNKASE","published_a":"Activase","published_b":"TNKase","a_is_rendering":false,"b_is_rendering":true},"ALFENTANIL\u001fFENTANYL":{"name_a":"ALFENTANIL","name_b":"FENTANYL","published_a":"ALfentanil","published_b":"fentaNYL","a_is_rendering":true,"b_is_rendering":true},"ALFENTANIL\u001fSUFENTANIL":{"name_a":"ALFENTANIL","name_b":"SUFENTANIL","published_a":"ALfentanil","published_b":"SUFentanil","a_is_rendering":true,"b_is_rendering":true},"ALPRAZOLAM\u001fCLONAZEPAM":{"name_a":"ALPRAZOLAM","name_b":"CLONAZEPAM","published_a":"ALPRAZolam","published_b":"clonazePAM","a_is_rendering":true,"b_is_rendering":true},"ALPRAZOLAM\u001fLORAZEPAM":{"name_a":"ALPRAZOLAM","name_b":"LORAZEPAM","published_a":"ALPRAZolam","published_b":"LORazepam","a_is_rendering":true,"b_is_rendering":true},"AMILORIDE\u001fAMLODIPINE":{"name_a":"AMILORIDE","name_b":"AMLODIPINE","published_a":"aMILoride","published_b":"amLODIPine","a_is_rendering":true,"b_is_rendering":true},"ARIPIPRAZOLE\u001fPROTON PUMP INHIBITORS":{"name_a":"ARIPIPRAZOLE","name_b":"PROTON PUMP INHIBITORS","published_a":"ARIPiprazole","published_b":"proton pump inhibitors","a_is_rendering":true,"b_is_rendering":false},"ARIPIPRAZOLE\u001fRABEPRAZOLE":{"name_a":"ARIPIPRAZOLE","name_b":"RABEPRAZOLE","published_a":"ARIPiprazole","published_b":"RABEprazole","a_is_rendering":true,"b_is_rendering":true},"ASACOL\u001fOS-CAL":{"name_a":"ASACOL","name_b":"OS-CAL","published_a":"Asacol","published_b":"Os-Cal","a_is_rendering":false,"b_is_rendering":true},"ATROVENT\u001fNATRU-VENT":{"name_a":"ATROVENT","name_b":"NATRU-VENT","published_a":"Atrovent","published_b":"Natru-Vent","a_is_rendering":false,"b_is_rendering":true},"AZACITIDINE\u001fAZATHIOPRINE":{"name_a":"AZACITIDINE","name_b":"AZATHIOPRINE","published_a":"azaCITIDine","published_b":"azaTHIOprine","a_is_rendering":true,"b_is_rendering":true},"BABYBIG\u001fHBIG":{"name_a":"BABYBIG","name_b":"HBIG","published_a":"BabyBIG","published_b":"HBIG","a_is_rendering":true,"b_is_rendering":false},"BAYHEP-B\u001fBAYRAB":{"name_a":"BAYHEP-B","name_b":"BAYRAB","published_a":"Bayhep-B","published_b":"Bayrab","a_is_rendering":true,"b_is_rendering":false},"BAYHEP-B\u001fBAYRHO-D":{"name_a":"BAYHEP-B","name_b":"BAYRHO-D","published_a":"Bayhep-B","published_b":"Bayrho-D","a_is_rendering":true,"b_is_rendering":true},"BAYRAB\u001fBAYRHO-D":{"name_a":"BAYRAB","name_b":"BAYRHO-D","published_a":"Bayrab","published_b":"Bayrho-D","a_is_rendering":false,"b_is_rendering":true},"BIO-T-GEL\u001fT-GEL":{"name_a":"BIO-T-GEL","name_b":"T-GEL","published_a":"Bio-T-Gel","published_b":"T-Gel","a_is_rendering":true,"b_is_rendering":true},"BUPIVACAINE\u001fROPIVACAINE":{"name_a":"BUPIVACAINE","name_b":"ROPIVACAINE","published_a":"BUPivacaine","published_b":"ROPivacaine","a_is_rendering":true,"b_is_rendering":true},"BUPRENORPHINE\u001fHYDROMORPHONE":{"name_a":"BUPRENORPHINE","name_b":"HYDROMORPHONE","published_a":"buprenorphine","published_b":"HYDROmorphone","a_is_rendering":false,"b_is_rendering":true},"BUPROPION\u001fBUSPIRONE":{"name_a":"BUPROPION","name_b":"BUSPIRONE","published_a":"buPROPion","published_b":"busPIRone","a_is_rendering":true,"b_is_rendering":true},"CARBAMAZEPINE\u001fOXCARBAZEPINE":{"name_a":"CARBAMAZEPINE","name_b":"OXCARBAZEPINE","published_a":"carBAMazepine","published_b":"OXcarbazepine","a_is_rendering":true,"b_is_rendering":true},"CARBOPLATIN\u001fCISPLATIN":{"name_a":"CARBOPLATIN","name_b":"CISPLATIN","published_a":"CARBOplatin","published_b":"CISplatin","a_is_rendering":true,"b_is_rendering":true},"CEFAZOLIN\u001fCEFOTETAN":{"name_a":"CEFAZOLIN","name_b":"CEFOTETAN","published_a":"ceFAZolin","published_b":"cefoTEtan","a_is_rendering":true,"b_is_rendering":true},"CEFAZOLIN\u001fCEFOXITIN":{"name_a":"CEFAZOLIN","name_b":"CEFOXITIN","published_a":"ceFAZolin","published_b":"cefOXitin","a_is_rendering":true,"b_is_rendering":true},"CEFAZOLIN\u001fCEFTAZIDIME":{"name_a":"CEFAZOLIN","name_b":"CEFTAZIDIME","published_a":"ceFAZolin","published_b":"cefTAZidime","a_is_rendering":true,"b_is_rendering":true},"CEFAZOLIN\u001fCEFTRIAXONE":{"name_a":"CEFAZOLIN","name_b":"CEFTRIAXONE","published_a":"ceFAZolin","published_b":"cefTRIAXone","a_is_rendering":true,"b_is_rendering":true},"CEFOTETAN\u001fCEFOXITIN":{"name_a":"CEFOTETAN","name_b":"CEFOXITIN","published_a":"cefoTEtan","published_b":"cefOXitin","a_is_rendering":true,"b_is_rendering":true},"CEFOTETAN\u001fCEFTAZIDIME":{"name_a":"CEFOTETAN","name_b":"CEFTAZIDIME","published_a":"cefoTEtan","published_b":"cefTAZidime","a_is_rendering":true,"b_is_rendering":true},"CEFOTETAN\u001fCEFTRIAXONE":{"name_a":"CEFOTETAN","name_b":"CEFTRIAXONE","published_a":"cefoTEtan","published_b":"cefTRIAXone","a_is_rendering":true,"b_is_rendering":true},"CEFOXITIN\u001fCEFTAZIDIME":{"name_a":"CEFOXITIN","name_b":"CEFTAZIDIME","published_a":"cefOXitin","published_b":"cefTAZidime","a_is_rendering":true,"b_is_rendering":true},"CEFOXITIN\u001fCEFTRIAXONE":{"name_a":"CEFOXITIN","name_b":"CEFTRIAXONE","published_a":"cefOXitin","published_b":"cefTRIAXone","a_is_rendering":true,"b_is_rendering":true},"CEFTAZIDIME\u001fCEFTRIAXONE":{"name_a":"CEFTAZIDIME","name_b":"CEFTRIAXONE","published_a":"cefTAZidime","published_b":"cefTRIAXone","a_is_rendering":true,"b_is_rendering":true},"CEFUROXIME\u001fSULFASALAZINE":{"name_a":"CEFUROXIME","name_b":"SULFASALAZINE","published_a":"cefuroxime","published_b":"sulfaSALAzine","a_is_rendering":false,"b_is_rendering":true},"CELEBREX\u001fCELEXA":{"name_a":"CELEBREX","name_b":"CELEXA","published_a":"CeleBREX","published_b":"CeleXA","a_is_rendering":true,"b_is_rendering":true},"CELEBREX\u001fCEREBYX":{"name_a":"CELEBREX","name_b":"CEREBYX","published_a":"CeleBREX","published_b":"Cerebyx","a_is_rendering":true,"b_is_rendering":false},"CELEXA\u001fCEREBYX":{"name_a":"CELEXA","name_b":"CEREBYX","published_a":"CeleXA","published_b":"Cerebyx","a_is_rendering":true,"b_is_rendering":false},"CELEXA\u001fZYPREXA":{"name_a":"CELEXA","name_b":"ZYPREXA","published_a":"CeleXA","published_b":"ZyPREXA","a_is_rendering":true,"b_is_rendering":true},"CHLORDIAZEPOXIDE\u001fCHLORPROMAZINE":{"name_a":"CHLORDIAZEPOXIDE","name_b":"CHLORPROMAZINE","published_a":"chlordiazePOXIDE","published_b":"chlorproMAZINE","a_is_rendering":true,"b_is_rendering":true},"CHLORPROMAZINE\u001fCHLORPROPAMIDE":{"name_a":"CHLORPROMAZINE","name_b":"CHLORPROPAMIDE","published_a":"chlorproMAZINE","published_b":"chlorproPAMIDE","a_is_rendering":true,"b_is_rendering":true},"CLARITIN-D\u001fCLARITIN-D 24":{"name_a":"CLARITIN-D","name_b":"CLARITIN-D 24","published_a":"Claritin-D","published_b":"Claritin-D 24","a_is_rendering":true,"b_is_rendering":false},"CLOBAZAM\u001fCLONAZEPAM":{"name_a":"CLOBAZAM","name_b":"CLONAZEPAM","published_a":"cloBAZam","published_b":"clonazePAM","a_is_rendering":true,"b_is_rendering":true},"CLOMIPHENE\u001fCLOMIPRAMINE":{"name_a":"CLOMIPHENE","name_b":"CLOMIPRAMINE","published_a":"clomiPHENE","published_b":"clomiPRAMINE","a_is_rendering":true,"b_is_rendering":true},"CLONAZEPAM\u001fCLONIDINE":{"name_a":"CLONAZEPAM","name_b":"CLONIDINE","published_a":"clonazePAM","published_b":"cloNIDine","a_is_rendering":true,"b_is_rendering":true},"CLONAZEPAM\u001fCLOZAPINE":{"name_a":"CLONAZEPAM","name_b":"CLOZAPINE","published_a":"clonazePAM","published_b":"cloZAPine","a_is_rendering":true,"b_is_rendering":true},"CLONAZEPAM\u001fLORAZEPAM":{"name_a":"CLONAZEPAM","name_b":"LORAZEPAM","published_a":"clonazePAM","published_b":"LORazepam","a_is_rendering":true,"b_is_rendering":true},"CLONIDINE\u001fCLOZAPINE":{"name_a":"CLONIDINE","name_b":"CLOZAPINE","published_a":"cloNIDine","published_b":"cloZAPine","a_is_rendering":true,"b_is_rendering":true},"CLONIDINE\u001fKLONOPIN":{"name_a":"CLONIDINE","name_b":"KLONOPIN","published_a":"cloNIDine","published_b":"KlonoPIN","a_is_rendering":true,"b_is_rendering":true},"CYCLOPHOSPHAMIDE\u001fCYCLOSERINE":{"name_a":"CYCLOPHOSPHAMIDE","name_b":"CYCLOSERINE","published_a":"cycloPHOSphamide","published_b":"cycloSERINE","a_is_rendering":true,"b_is_rendering":true},"CYCLOPHOSPHAMIDE\u001fCYCLOSPORINE":{"name_a":"CYCLOPHOSPHAMIDE","name_b":"CYCLOSPORINE","published_a":"cycloPHOSphamide","published_b":"cycloSPORINE","a_is_rendering":true,"b_is_rendering":true},"CYCLOSERINE\u001fCYCLOSPORINE":{"name_a":"CYCLOSERINE","name_b":"CYCLOSPORINE","published_a":"cycloSERINE","published_b":"cycloSPORINE","a_is_rendering":true,"b_is_rendering":true},"CYCLOSPORINE\u001fCYCLOSPORINE MODIFIED":{"name_a":"CYCLOSPORINE","name_b":"CYCLOSPORINE MODIFIED","published_a":"cycloSPORINE","published_b":"cycloSPORINE modified","a_is_rendering":true,"b_is_rendering":false},"DACTINOMYCIN\u001fDAPTOMYCIN":{"name_a":"DACTINOMYCIN","name_b":"DAPTOMYCIN","published_a":"DACTINomycin","published_b":"DAPTOmycin","a_is_rendering":true,"b_is_rendering":true},"DAUNORUBICIN\u001fDAUNORUBICIN LIPOSOMAL":{"name_a":"DAUNORUBICIN","name_b":"DAUNORUBICIN LIPOSOMAL","published_a":"DAUNOrubicin","published_b":"DAUNOrubicin liposomal","a_is_rendering":true,"b_is_rendering":false},"DAUNORUBICIN\u001fDOXORUBICIN":{"name_a":"DAUNORUBICIN","name_b":"DOXORUBICIN","published_a":"DAUNOrubicin","published_b":"DOXOrubicin","a_is_rendering":true,"b_is_rendering":true},"DAUNORUBICIN\u001fIDARUBICIN":{"name_a":"DAUNORUBICIN","name_b":"IDARUBICIN","published_a":"DAUNOrubicin","published_b":"IDArubicin","a_is_rendering":true,"b_is_rendering":true},"DEPO-MEDROL\u001fSOLU-MEDROL":{"name_a":"DEPO-MEDROL","name_b":"SOLU-MEDROL","published_a":"DEPO-Medrol","published_b":"SOLU-Medrol","a_is_rendering":true,"b_is_rendering":true},"DEPO-PROVERA\u001fDEPO-SUBQ PROVERA 104":{"name_a":"DEPO-PROVERA","name_b":"DEPO-SUBQ PROVERA 104","published_a":"Depo-Provera","published_b":"Depo-subQ provera 104","a_is_rendering":true,"b_is_rendering":false},"DEXAMETHASONE\u001fDEXMEDETOMIDINE":{"name_a":"DEXAMETHASONE","name_b":"DEXMEDETOMIDINE","published_a":"dexAMETHasone","published_b":"dexmedeTOMIDine","a_is_rendering":true,"b_is_rendering":true},"DEXILANT\u001fDULOXETINE":{"name_a":"DEXILANT","name_b":"DULOXETINE","published_a":"Dexilant","published_b":"DULoxetine","a_is_rendering":false,"b_is_rendering":true},"DIAZEPAM\u001fDILTIAZEM":{"name_a":"DIAZEPAM","name_b":"DILTIAZEM","published_a":"diazePAM","published_b":"dilTIAZem","a_is_rendering":true,"b_is_rendering":true},"DIMENHYDRINATE\u001fDIPHENHYDRAMINE":{"name_a":"DIMENHYDRINATE","name_b":"DIPHENHYDRAMINE","published_a":"dimenhyDRINATE","published_b":"diphenhydrAMINE","a_is_rendering":true,"b_is_rendering":true},"DOBUTAMINE\u001fDOPAMINE":{"name_a":"DOBUTAMINE","name_b":"DOPAMINE","published_a":"DOBUTamine","published_b":"DOPamine","a_is_rendering":true,"b_is_rendering":true},"DOCETAXEL\u001fPACLITAXEL":{"name_a":"DOCETAXEL","name_b":"PACLITAXEL","published_a":"DOCEtaxel","published_b":"PACLitaxel","a_is_rendering":true,"b_is_rendering":true},"DOXORUBICIN\u001fDOXORUBICIN LIPOSOMAL":{"name_a":"DOXORUBICIN","name_b":"DOXORUBICIN LIPOSOMAL","published_a":"DOXOrubicin","published_b":"DOXOrubicin liposomal","a_is_rendering":true,"b_is_rendering":false},"DOXORUBICIN\u001fIDARUBICIN":{"name_a":"DOXORUBICIN","name_b":"IDARUBICIN","published_a":"DOXOrubicin","published_b":"IDArubicin","a_is_rendering":true,"b_is_rendering":true},"DRONABINOL\u001fDROPERIDOL":{"name_a":"DRONABINOL","name_b":"DROPERIDOL","published_a":"droNABinol","published_b":"droPERidol","a_is_rendering":true,"b_is_rendering":true},"DULOXETINE\u001fFLUOXETINE":{"name_a":"DULOXETINE","name_b":"FLUOXETINE","published_a":"DULoxetine","published_b":"FLUoxetine","a_is_rendering":true,"b_is_rendering":true},"DULOXETINE\u001fPAROXETINE":{"name_a":"DULOXETINE","name_b":"PAROXETINE","published_a":"DULoxetine","published_b":"PARoxetine","a_is_rendering":true,"b_is_rendering":true},"EPHEDRINE\u001fEPINEPHRINE":{"name_a":"EPHEDRINE","name_b":"EPINEPHRINE","published_a":"ePHEDrine","published_b":"EPINEPHrine","a_is_rendering":true,"b_is_rendering":true},"EPIRUBICIN\u001fERIBULIN":{"name_a":"EPIRUBICIN","name_b":"ERIBULIN","published_a":"epiRUBicin","published_b":"eriBULin","a_is_rendering":true,"b_is_rendering":true},"AVINZA\u001fEVISTA":{"name_a":"EVISTA","name_b":"AVINZA","published_a":"Evista","published_b":"AVINza","a_is_rendering":false,"b_is_rendering":true},"FENTANYL\u001fSUFENTANIL":{"name_a":"FENTANYL","name_b":"SUFENTANIL","published_a":"fentaNYL","published_b":"SUFentanil","a_is_rendering":true,"b_is_rendering":true},"FLAVOXATE\u001fFLUVOXAMINE":{"name_a":"FLAVOXATE","name_b":"FLUVOXAMINE","published_a":"flavoxATE","published_b":"fluvoxaMINE","a_is_rendering":true,"b_is_rendering":true},"FLUOXETINE\u001fLOXITANE":{"name_a":"FLUOXETINE","name_b":"LOXITANE","published_a":"FLUoxetine","published_b":"Loxitane","a_is_rendering":true,"b_is_rendering":false},"FLUOXETINE\u001fPAROXETINE":{"name_a":"FLUOXETINE","name_b":"PAROXETINE","published_a":"FLUoxetine","published_b":"PARoxetine","a_is_rendering":true,"b_is_rendering":true},"FLUPHENAZINE\u001fFLUVOXAMINE":{"name_a":"FLUPHENAZINE","name_b":"FLUVOXAMINE","published_a":"fluPHENAZine","published_b":"fluvoxaMINE","a_is_rendering":true,"b_is_rendering":true},"GLIPIZIDE\u001fGLYBURIDE":{"name_a":"GLIPIZIDE","name_b":"GLYBURIDE","published_a":"glipiZIDE","published_b":"glyBURIDE","a_is_rendering":true,"b_is_rendering":true},"GUAIFENESIN\u001fGUANFACINE":{"name_a":"GUAIFENESIN","name_b":"GUANFACINE","published_a":"guaiFENesin","published_b":"guanFACINE","a_is_rendering":true,"b_is_rendering":true},"HUMALOG\u001fHUMULIN":{"name_a":"HUMALOG","name_b":"HUMULIN","published_a":"HumaLOG","published_b":"HumuLIN","a_is_rendering":true,"b_is_rendering":true},"HUMALOG\u001fNOVOLOG":{"name_a":"HUMALOG","name_b":"NOVOLOG","published_a":"HumaLOG","published_b":"NovoLOG","a_is_rendering":true,"b_is_rendering":true},"HUMULIN\u001fNOVOLIN":{"name_a":"HUMULIN","name_b":"NOVOLIN","published_a":"HumuLIN","published_b":"NovoLIN","a_is_rendering":true,"b_is_rendering":true},"HYDRALAZINE\u001fHYDROCHLOROTHIAZIDE":{"name_a":"HYDRALAZINE","name_b":"HYDROCHLOROTHIAZIDE","published_a":"hydrALAZINE","published_b":"hydroCHLOROthiazide","a_is_rendering":true,"b_is_rendering":true},"HYDRALAZINE\u001fHYDROMORPHONE":{"name_a":"HYDRALAZINE","name_b":"HYDROMORPHONE","published_a":"hydrALAZINE","published_b":"HYDROmorphone","a_is_rendering":true,"b_is_rendering":true},"HYDRALAZINE\u001fHYDROXYZINE":{"name_a":"HYDRALAZINE","name_b":"HYDROXYZINE","published_a":"hydrALAZINE","published_b":"hydrOXYzine","a_is_rendering":true,"b_is_rendering":true},"HYDROCHLOROTHIAZIDE\u001fHYDROXYCHLOROQUINE":{"name_a":"HYDROCHLOROTHIAZIDE","name_b":"HYDROXYCHLOROQUINE","published_a":"hydroCHLOROthiazide","published_b":"hydroxychloroquine","a_is_rendering":true,"b_is_rendering":false},"HYDROCHLOROTHIAZIDE\u001fHYDROXYZINE":{"name_a":"HYDROCHLOROTHIAZIDE","name_b":"HYDROXYZINE","published_a":"hydroCHLOROthiazide","published_b":"hydrOXYzine","a_is_rendering":true,"b_is_rendering":true},"HYDROCODONE\u001fOXYCODONE":{"name_a":"HYDROCODONE","name_b":"OXYCODONE","published_a":"HYDROcodone","published_b":"oxyCODONE","a_is_rendering":true,"b_is_rendering":true},"HYDROGESIC\u001fHYDROXYZINE":{"name_a":"HYDROGESIC","name_b":"HYDROXYZINE","published_a":"Hydrogesic","published_b":"hydrOXYzine","a_is_rendering":false,"b_is_rendering":true},"HYDROMORPHONE\u001fHYDROXYZINE":{"name_a":"HYDROMORPHONE","name_b":"HYDROXYZINE","published_a":"HYDROmorphone","published_b":"hydrOXYzine","a_is_rendering":true,"b_is_rendering":true},"HYDROMORPHONE\u001fMORPHINE":{"name_a":"HYDROMORPHONE","name_b":"MORPHINE","published_a":"HYDROmorphone","published_b":"morphine","a_is_rendering":true,"b_is_rendering":false},"HYDROMORPHONE\u001fOXYMORPHONE":{"name_a":"HYDROMORPHONE","name_b":"OXYMORPHONE","published_a":"HYDROmorphone","published_b":"oxyMORphone","a_is_rendering":true,"b_is_rendering":true},"HYDROXYPROGESTERONE\u001fMEDROXYPROGESTERONE":{"name_a":"HYDROXYPROGESTERONE","name_b":"MEDROXYPROGESTERONE","published_a":"HYDROXYprogesterone","published_b":"medroxyPROGESTERone","a_is_rendering":true,"b_is_rendering":true},"HYDROXYUREA\u001fHYDROXYZINE":{"name_a":"HYDROXYUREA","name_b":"HYDROXYZINE","published_a":"hydroxyurea","published_b":"hydrOXYzine","a_is_rendering":false,"b_is_rendering":true},"HYDROXYUREA\u001fURE-NA":{"name_a":"HYDROXYUREA","name_b":"URE-NA","published_a":"hydroxyurea","published_b":"Ure-Na","a_is_rendering":false,"b_is_rendering":true},"IDARUBICIN\u001fIDARUCIZUMAB":{"name_a":"IDARUBICIN","name_b":"IDARUCIZUMAB","published_a":"IDArubicin","published_b":"idaruCIZUmab","a_is_rendering":true,"b_is_rendering":true},"INFLIXIMAB\u001fRITUXIMAB":{"name_a":"INFLIXIMAB","name_b":"RITUXIMAB","published_a":"inFLIXimab","published_b":"riTUXimab","a_is_rendering":true,"b_is_rendering":true},"ISOTRETINOIN\u001fTRETINOIN":{"name_a":"ISOTRETINOIN","name_b":"TRETINOIN","published_a":"ISOtretinoin","published_b":"tretinoin","a_is_rendering":true,"b_is_rendering":false},"K-PHOS NEUTRAL\u001fNEUTRA-PHOS-K":{"name_a":"K-PHOS NEUTRAL","name_b":"NEUTRA-PHOS-K","published_a":"K-Phos Neutral","published_b":"Neutra-Phos-K","a_is_rendering":false,"b_is_rendering":true},"LABETALOL\u001fLAMICTAL":{"name_a":"LABETALOL","name_b":"LAMICTAL","published_a":"labetalol","published_b":"LaMICtal","a_is_rendering":false,"b_is_rendering":true},"LABETALOL\u001fLAMOTRIGINE":{"name_a":"LABETALOL","name_b":"LAMOTRIGINE","published_a":"labetalol","published_b":"lamoTRIgine","a_is_rendering":false,"b_is_rendering":true},"LAMICTAL\u001fLAMISIL":{"name_a":"LAMICTAL","name_b":"LAMISIL","published_a":"LaMICtal","published_b":"LamISIL","a_is_rendering":true,"b_is_rendering":true},"LAMIVUDINE\u001fLAMOTRIGINE":{"name_a":"LAMIVUDINE","name_b":"LAMOTRIGINE","published_a":"lamiVUDine","published_b":"lamoTRIgine","a_is_rendering":true,"b_is_rendering":true},"LAMOTRIGINE\u001fLEVETIRACETAM":{"name_a":"LAMOTRIGINE","name_b":"LEVETIRACETAM","published_a":"lamoTRIgine","published_b":"levETIRAcetam","a_is_rendering":true,"b_is_rendering":true},"LAMOTRIGINE\u001fLEVOTHYROXINE":{"name_a":"LAMOTRIGINE","name_b":"LEVOTHYROXINE","published_a":"lamoTRIgine","published_b":"levothyroxine","a_is_rendering":true,"b_is_rendering":false},"LEUCOVORIN CALCIUM\u001fLEVOLEUCOVORIN":{"name_a":"LEUCOVORIN CALCIUM","name_b":"LEVOLEUCOVORIN","published_a":"leucovorin calcium","published_b":"LEVOleucovorin","a_is_rendering":false,"b_is_rendering":true},"LEVETIRACETAM\u001fLEVOCARNITINE":{"name_a":"LEVETIRACETAM","name_b":"LEVOCARNITINE","published_a":"levETIRAcetam","published_b":"levOCARNitine","a_is_rendering":true,"b_is_rendering":true},"LEVETIRACETAM\u001fLEVOFLOXACIN":{"name_a":"LEVETIRACETAM","name_b":"LEVOFLOXACIN","published_a":"levETIRAcetam","published_b":"levoFLOXacin","a_is_rendering":true,"b_is_rendering":true},"LINACLOTIDE\u001fLINAGLIPTIN":{"name_a":"LINACLOTIDE","name_b":"LINAGLIPTIN","published_a":"linaCLOtide","published_b":"linaGLIPtin","a_is_rendering":true,"b_is_rendering":true},"LIPITOR\u001fZYRTEC":{"name_a":"LIPITOR","name_b":"ZYRTEC","published_a":"Lipitor","published_b":"ZyrTEC","a_is_rendering":false,"b_is_rendering":true},"LORAZEPAM\u001fLOVAZA":{"name_a":"LORAZEPAM","name_b":"LOVAZA","published_a":"LORazepam","published_b":"Lovaza","a_is_rendering":true,"b_is_rendering":false},"MEDROXYPROGESTERONE\u001fMETHYLPREDNISOLONE":{"name_a":"MEDROXYPROGESTERONE","name_b":"METHYLPREDNISOLONE","published_a":"medroxyPROGESTERone","published_b":"methylPREDNISolone","a_is_rendering":true,"b_is_rendering":true},"MEDROXYPROGESTERONE\u001fMETHYLTESTOSTERONE":{"name_a":"MEDROXYPROGESTERONE","name_b":"METHYLTESTOSTERONE","published_a":"medroxyPROGESTERone","published_b":"methylTESTOSTERone","a_is_rendering":true,"b_is_rendering":true},"METFORMIN\u001fMETRONIDAZOLE":{"name_a":"METFORMIN","name_b":"METRONIDAZOLE","published_a":"metFORMIN","published_b":"metroNIDAZOLE","a_is_rendering":true,"b_is_rendering":true},"METHADONE\u001fMETOLAZONE":{"name_a":"METHADONE","name_b":"METOLAZONE","published_a":"methadone","published_b":"metOLazone","a_is_rendering":false,"b_is_rendering":true},"METHAZOLAMIDE\u001fMETHIMAZOLE":{"name_a":"METHAZOLAMIDE","name_b":"METHIMAZOLE","published_a":"methazolAMIDE","published_b":"methIMAzole","a_is_rendering":true,"b_is_rendering":true},"METHAZOLAMIDE\u001fMETOLAZONE":{"name_a":"METHAZOLAMIDE","name_b":"METOLAZONE","published_a":"methazolAMIDE","published_b":"metOLazone","a_is_rendering":true,"b_is_rendering":true},"METHIMAZOLE\u001fMETOLAZONE":{"name_a":"METHIMAZOLE","name_b":"METOLAZONE","published_a":"methIMAzole","published_b":"metOLazone","a_is_rendering":true,"b_is_rendering":true},"METHOTREXATE\u001fMETOLAZONE":{"name_a":"METHOTREXATE","name_b":"METOLAZONE","published_a":"methotrexate","published_b":"metOLazone","a_is_rendering":false,"b_is_rendering":true},"METHYLENE BLUE\u001fVISIONBLUE":{"name_a":"METHYLENE BLUE","name_b":"VISIONBLUE","published_a":"methylene blue","published_b":"VisionBlue","a_is_rendering":false,"b_is_rendering":true},"METHYLPREDNISOLONE\u001fMETHYLTESTOSTERONE":{"name_a":"METHYLPREDNISOLONE","name_b":"METHYLTESTOSTERONE","published_a":"methylPREDNISolone","published_b":"methylTESTOSTERone","a_is_rendering":true,"b_is_rendering":true},"METYRAPONE\u001fMETYROSINE":{"name_a":"METYRAPONE","name_b":"METYROSINE","published_a":"metyraPONE","published_b":"metyroSINE","a_is_rendering":true,"b_is_rendering":true},"MIFEPRISTONE\u001fMISOPROSTOL":{"name_a":"MIFEPRISTONE","name_b":"MISOPROSTOL","published_a":"miFEPRIStone","published_b":"miSOPROStol","a_is_rendering":true,"b_is_rendering":true},"MIGALASTAT\u001fMIGLUSTAT":{"name_a":"MIGALASTAT","name_b":"MIGLUSTAT","published_a":"migALAstat","published_b":"migLUstat","a_is_rendering":true,"b_is_rendering":true},"MITOMYCIN\u001fMITOXANTRONE":{"name_a":"MITOMYCIN","name_b":"MITOXANTRONE","published_a":"mitoMYcin","published_b":"mitoXANTRONE","a_is_rendering":true,"b_is_rendering":true},"MITOXANTRONE\u001fMTX PATCH":{"name_a":"MITOXANTRONE","name_b":"MTX PATCH","published_a":"mitoXANTRONE","published_b":"MTX Patch","a_is_rendering":true,"b_is_rendering":false},"MS CONTIN\u001fOXYCONTIN":{"name_a":"MS CONTIN","name_b":"OXYCONTIN","published_a":"MS Contin","published_b":"OxyCONTIN","a_is_rendering":false,"b_is_rendering":true},"NEXAVAR\u001fNEXIUM":{"name_a":"NEXAVAR","name_b":"NEXIUM","published_a":"NexAVAR","published_b":"NexIUM","a_is_rendering":true,"b_is_rendering":true},"NICARDIPINE\u001fNIFEDIPINE":{"name_a":"NICARDIPINE","name_b":"NIFEDIPINE","published_a":"niCARdipine","published_b":"NIFEdipine","a_is_rendering":true,"b_is_rendering":true},"NICARDIPINE\u001fNIMODIPINE":{"name_a":"NICARDIPINE","name_b":"NIMODIPINE","published_a":"niCARdipine","published_b":"niMODipine","a_is_rendering":true,"b_is_rendering":true},"NIFEDIPINE\u001fNIMODIPINE":{"name_a":"NIFEDIPINE","name_b":"NIMODIPINE","published_a":"NIFEdipine","published_b":"niMODipine","a_is_rendering":true,"b_is_rendering":true},"NIZATIDINE\u001fTIZANIDINE":{"name_a":"NIZATIDINE","name_b":"TIZANIDINE","published_a":"nizatidine","published_b":"tiZANidine","a_is_rendering":false,"b_is_rendering":true},"NOVOLIN\u001fNOVOLOG":{"name_a":"NOVOLIN","name_b":"NOVOLOG","published_a":"NovoLIN","published_b":"NovoLOG","a_is_rendering":true,"b_is_rendering":true},"OCCLUSAL-HP\u001fOCUFLOX":{"name_a":"OCCLUSAL-HP","name_b":"OCUFLOX","published_a":"Occlusal-HP","published_b":"Ocuflox","a_is_rendering":true,"b_is_rendering":false},"OLANZAPINE\u001fQUETIAPINE":{"name_a":"OLANZAPINE","name_b":"QUETIAPINE","published_a":"OLANZapine","published_b":"QUEtiapine","a_is_rendering":true,"b_is_rendering":true},"OXAPROZIN\u001fOXCARBAZEPINE":{"name_a":"OXAPROZIN","name_b":"OXCARBAZEPINE","published_a":"oxaprozin","published_b":"OXcarbazepine","a_is_rendering":false,"b_is_rendering":true},"OXYBUTYNIN\u001fOXYCODONE":{"name_a":"OXYBUTYNIN","name_b":"OXYCODONE","published_a":"oxyBUTYnin","published_b":"oxyCODONE","a_is_rendering":true,"b_is_rendering":true},"OXYBUTYNIN\u001fOXYCONTIN":{"name_a":"OXYBUTYNIN","name_b":"OXYCONTIN","published_a":"oxyBUTYnin","published_b":"OxyCONTIN","a_is_rendering":true,"b_is_rendering":true},"OXYBUTYNIN\u001fOXYMORPHONE":{"name_a":"OXYBUTYNIN","name_b":"OXYMORPHONE","published_a":"oxyBUTYnin","published_b":"oxyMORphone","a_is_rendering":true,"b_is_rendering":true},"OXYCODONE\u001fOXYCONTIN":{"name_a":"OXYCODONE","name_b":"OXYCONTIN","published_a":"oxyCODONE","published_b":"OxyCONTIN","a_is_rendering":true,"b_is_rendering":true},"OXYCODONE\u001fOXYMORPHONE":{"name_a":"OXYCODONE","name_b":"OXYMORPHONE","published_a":"oxyCODONE","published_b":"oxyMORphone","a_is_rendering":true,"b_is_rendering":true},"OXYCONTIN\u001fOXYMORPHONE":{"name_a":"OXYCONTIN","name_b":"OXYMORPHONE","published_a":"OxyCONTIN","published_b":"oxyMORphone","a_is_rendering":true,"b_is_rendering":true},"OXYCONTIN\u001fOXYTOCIN":{"name_a":"OXYCONTIN","name_b":"OXYTOCIN","published_a":"OxyCONTIN","published_b":"oxytocin","a_is_rendering":true,"b_is_rendering":false},"PACLITAXEL\u001fPACLITAXEL PROTEIN-BOUND PARTICLES":{"name_a":"PACLITAXEL","name_b":"PACLITAXEL PROTEIN-BOUND PARTICLES","published_a":"PACLitaxel","published_b":"PACLitaxel protein-bound particles","a_is_rendering":true,"b_is_rendering":false},"PAROXETINE\u001fPIROXICAM":{"name_a":"PAROXETINE","name_b":"PIROXICAM","published_a":"PARoxetine","published_b":"piroxicam","a_is_rendering":true,"b_is_rendering":false},"PAZOPANIB\u001fPONATINIB":{"name_a":"PAZOPANIB","name_b":"PONATINIB","published_a":"PAZOPanib","published_b":"PONATinib","a_is_rendering":true,"b_is_rendering":true},"PEMETREXED\u001fPRALATREXATE":{"name_a":"PEMETREXED","name_b":"PRALATREXATE","published_a":"PEMEtrexed","published_b":"PRALAtrexate","a_is_rendering":true,"b_is_rendering":true},"PENICILLAMINE\u001fPENICILLIN":{"name_a":"PENICILLAMINE","name_b":"PENICILLIN","published_a":"penicillAMINE","published_b":"penicillin","a_is_rendering":true,"b_is_rendering":false},"PENTOBARBITAL\u001fPHENOBARBITAL":{"name_a":"PENTOBARBITAL","name_b":"PHENOBARBITAL","published_a":"PENTobarbital","published_b":"PHENobarbital","a_is_rendering":true,"b_is_rendering":true},"PHYSOSTIGMINE\u001fPYRIDOSTIGMINEE":{"name_a":"PHYSOSTIGMINE","name_b":"PYRIDOSTIGMINEE","published_a":"PHYSostigmine","published_b":"pyRIDostigminee","a_is_rendering":true,"b_is_rendering":true},"PREDNISOLONE\u001fPREDNISONE":{"name_a":"PREDNISOLONE","name_b":"PREDNISONE","published_a":"prednisoLONE","published_b":"predniSONE","a_is_rendering":true,"b_is_rendering":true},"PRILOSEC\u001fPRISTIQ":{"name_a":"PRILOSEC","name_b":"PRISTIQ","published_a":"PriLOSEC","published_b":"Pristiq","a_is_rendering":true,"b_is_rendering":false},"PRILOSEC\u001fPROZAC":{"name_a":"PRILOSEC","name_b":"PROZAC","published_a":"PriLOSEC","published_b":"PROzac","a_is_rendering":true,"b_is_rendering":true},"PROGRAF\u001fPROZAC":{"name_a":"PROGRAF","name_b":"PROZAC","published_a":"Prograf","published_b":"PROzac","a_is_rendering":false,"b_is_rendering":true},"PROVERA\u001fPROZAC":{"name_a":"PROVERA","name_b":"PROZAC","published_a":"Provera","published_b":"PROzac","a_is_rendering":false,"b_is_rendering":true},"PHYSOSTIGMINE\u001fPYRIDOSTIGMINE":{"name_a":"PYRIDOSTIGMINE","name_b":"PHYSOSTIGMINE","published_a":"pyRIDostigmine","published_b":"PHYSostigmine","a_is_rendering":true,"b_is_rendering":true},"PYRIDOSTIGMINE\u001fPYRIDOXINE":{"name_a":"PYRIDOSTIGMINE","name_b":"PYRIDOXINE","published_a":"pyRIDostigmine","published_b":"pyridoxine","a_is_rendering":true,"b_is_rendering":false},"QUINIDINE\u001fQUININE":{"name_a":"QUINIDINE","name_b":"QUININE","published_a":"quiNIDine","published_b":"quiNINE","a_is_rendering":true,"b_is_rendering":true},"RANITIDINE\u001fRIMANTADINE":{"name_a":"RANITIDINE","name_b":"RIMANTADINE","published_a":"raNITIdine","published_b":"riMANTAdine","a_is_rendering":true,"b_is_rendering":true},"REPREXAIN\u001fZYPREXA":{"name_a":"REPREXAIN","name_b":"ZYPREXA","published_a":"Reprexain","published_b":"ZyPREXA","a_is_rendering":false,"b_is_rendering":true},"RESTORIL\u001fRISPERDAL":{"name_a":"RESTORIL","name_b":"RISPERDAL","published_a":"Restoril","published_b":"RisperDAL","a_is_rendering":false,"b_is_rendering":true},"RIFAMATE\u001fRIFAMPIN":{"name_a":"RIFAMATE","name_b":"RIFAMPIN","published_a":"Rifamate","published_b":"rifAMPin","a_is_rendering":false,"b_is_rendering":true},"RIFAMPIN\u001fRIFAXIMIN":{"name_a":"RIFAMPIN","name_b":"RIFAXIMIN","published_a":"rifAMPin","published_b":"rifAXIMin","a_is_rendering":true,"b_is_rendering":true},"RISPERDAL\u001fROPINIROLE":{"name_a":"RISPERDAL","name_b":"ROPINIROLE","published_a":"RisperDAL","published_b":"rOPINIRole","a_is_rendering":true,"b_is_rendering":true},"RISPERIDONE\u001fROPINIROLE":{"name_a":"RISPERIDONE","name_b":"ROPINIROLE","published_a":"risperiDONE","published_b":"rOPINIRole","a_is_rendering":true,"b_is_rendering":true},"ROMIDEPSIN\u001fROMIPLOSTIM":{"name_a":"ROMIDEPSIN","name_b":"ROMIPLOSTIM","published_a":"romiDEPsin","published_b":"romiPLOStim","a_is_rendering":true,"b_is_rendering":true},"SANDIMMUNE\u001fSANDOSTATIN":{"name_a":"SANDIMMUNE","name_b":"SANDOSTATIN","published_a":"SandIMMUNE","published_b":"SandoSTATIN","a_is_rendering":true,"b_is_rendering":true},"SAXAGLIPTIN\u001fSITAGLIPTIN":{"name_a":"SAXAGLIPTIN","name_b":"SITAGLIPTIN","published_a":"sAXagliptin","published_b":"SITagliptin","a_is_rendering":true,"b_is_rendering":true},"SITAGLIPTIN\u001fSUMATRIPTAN":{"name_a":"SITAGLIPTIN","name_b":"SUMATRIPTAN","published_a":"SITagliptin","published_b":"SUMAtriptan","a_is_rendering":true,"b_is_rendering":true},"SOLU-CORTEF\u001fSOLU-MEDROL":{"name_a":"SOLU-CORTEF","name_b":"SOLU-MEDROL","published_a":"Solu-CORTEF","published_b":"SOLU-Medrol","a_is_rendering":true,"b_is_rendering":true},"SORAFENIB\u001fSUNITINIB":{"name_a":"SORAFENIB","name_b":"SUNITINIB","published_a":"SORAfenib","published_b":"SUNItinib","a_is_rendering":true,"b_is_rendering":true},"SULFADIAZINE\u001fSULFASALAZINE":{"name_a":"SULFADIAZINE","name_b":"SULFASALAZINE","published_a":"sulfADIAZINE","published_b":"sulfaSALAzine","a_is_rendering":true,"b_is_rendering":true},"SULFADIAZINE\u001fSULFISOXAZOLE":{"name_a":"SULFADIAZINE","name_b":"SULFISOXAZOLE","published_a":"sulfADIAZINE","published_b":"sulfiSOXAZOLE","a_is_rendering":true,"b_is_rendering":true},"SUMATRIPTAN\u001fZOLMITRIPTAN":{"name_a":"SUMATRIPTAN","name_b":"ZOLMITRIPTAN","published_a":"SUMAtriptan","published_b":"ZOLMitriptan","a_is_rendering":true,"b_is_rendering":true},"TIAGABINE\u001fTIZANIDINE":{"name_a":"TIAGABINE","name_b":"TIZANIDINE","published_a":"tiaGABine","published_b":"tiZANidine","a_is_rendering":true,"b_is_rendering":true},"T-PA\u001fTNKASE":{"name_a":"TNKASE","name_b":"T-PA","published_a":"TNKase","published_b":"t-PA","a_is_rendering":true,"b_is_rendering":true},"TOLAZAMIDE\u001fTOLBUTAMIDE":{"name_a":"TOLAZAMIDE","name_b":"TOLBUTAMIDE","published_a":"TOLAZamide","published_b":"TOLBUTamide","a_is_rendering":true,"b_is_rendering":true},"TOPAMAX\u001fTOPROL-XL":{"name_a":"TOPAMAX","name_b":"TOPROL-XL","published_a":"Topamax","published_b":"Toprol-XL","a_is_rendering":false,"b_is_rendering":true},"TRAMADOL\u001fTRAZODONE":{"name_a":"TRAMADOL","name_b":"TRAZODONE","published_a":"traMADol","published_b":"traZODone","a_is_rendering":true,"b_is_rendering":true},"VALACYCLOVIR\u001fVALGANCICLOVIR":{"name_a":"VALACYCLOVIR","name_b":"VALGANCICLOVIR","published_a":"valACYclovir","published_b":"valGANciclovir","a_is_rendering":true,"b_is_rendering":true},"VINBLASTINE\u001fVINCRISTINE":{"name_a":"VINBLASTINE","name_b":"VINCRISTINE","published_a":"vinBLAStine","published_b":"vinCRIStine","a_is_rendering":true,"b_is_rendering":true},"ZANTAC\u001fZYRTEC":{"name_a":"ZANTAC","name_b":"ZYRTEC","published_a":"Zantac","published_b":"ZyrTEC","a_is_rendering":false,"b_is_rendering":true},"ZERIT\u001fZYRTEC":{"name_a":"ZERIT","name_b":"ZYRTEC","published_a":"Zerit","published_b":"ZyrTEC","a_is_rendering":false,"b_is_rendering":true},"ZESTRIL\u001fZYPREXA":{"name_a":"ZESTRIL","name_b":"ZYPREXA","published_a":"Zestril","published_b":"ZyPREXA","a_is_rendering":false,"b_is_rendering":true},"ZOCOR\u001fZYRTEC":{"name_a":"ZOCOR","name_b":"ZYRTEC","published_a":"Zocor","published_b":"ZyrTEC","a_is_rendering":false,"b_is_rendering":true},"ZYPREXA\u001fZYRTEC":{"name_a":"ZYPREXA","name_b":"ZYRTEC","published_a":"ZyPREXA","published_b":"ZyrTEC","a_is_rendering":true,"b_is_rendering":true},"ZYRTEC\u001fZYRTEC ITCHY EYE DROPS":{"name_a":"ZYRTEC","name_b":"ZYRTEC ITCHY EYE DROPS","published_a":"ZyrTEC","published_b":"ZyrTEC Itchy Eye Drops","a_is_rendering":true,"b_is_rendering":false},"ZYRTEC\u001fZYRTEC-D":{"name_a":"ZYRTEC","name_b":"ZYRTEC-D","published_a":"ZyrTEC","published_b":"ZyrTEC-D","a_is_rendering":true,"b_is_rendering":true}},"ismp_tallman_provenance":{"file":"data/reference/ismp_tallman.csv","rows_in_file":188,"pairs_shipped":188,"sha256":"b295bb733f7f392f1e72bcbf244a36adf63544d68d2dd5620953df6aaac396c1"},"figures":{"auc_sentence":"The composite score this page ranks on was measured against hard negatives — pairs that clear the same floor and are still not the finding the screen claims, such as one product at two strengths or a brand beside its own molecule. At the floor this page screens at (0.45) it separates them at AUC 0.352, where 0.5 is a coin toss: the ranking is not weak but backwards. Nothing here is called a score of how dangerous a pair is because there is nothing to base one on. Measured the same way at the 0.90 floor the project's full report runs at, it is 0.004. Both are real and they describe different populations: the negatives are drawn from pairs above the floor, so the higher floor draws them from names the composite already scores at 0.92 on average against 0.49 for the known pairs. The figure quoted elsewhere in this project is that one.","inversion_sentence":"The five metrics are combined by a weighted sum, and every one of the five weights is positive. Fit the same five metrics to labelled data instead and Levenshtein comes out positive and the other 4 come out negative — Jaro-Winkler, Bigram Dice, Double Metaphone, Soundex, including both phonetic metrics, which carry 45% of the hand-chosen weight between them. Among names already similar by edit distance, very high agreement usually means the same product listed twice rather than a pair that could be confused, and a sum with only positive weights cannot express that at any threshold. Two separate fits recorded in this project agree on every one of those signs while disagreeing on the magnitudes.","inversion_short":"4 of the 5 coefficients are negative, so a pair scoring high on those is pushed down by the fitted model and up by the composite. That disagreement is this project's central finding and it is not resolved.","survey_sentence":"The study that would have tested whether these scores match a pharmacist's judgement returned no outcome. 22 pharmacists responded, 20 were excluded by rules fixed before any response existed, and agreement among the 2 who remained was Krippendorff's alpha 0.217. The study is recorded as underpowered. The exclusions turned out to measure where on the scale a rater sits rather than whether they were paying attention, which is a finding about the instrument rather than about the people.","tallman_sentence":"Where ISMP publishes no rendering the capitalisation here is computed by rule, and the rule agrees with ISMP's published renderings for 8.5% of the 130 pairs ISMP publishes with both sides rendered.","tallman_sentence_long":"Tall Man lettering is the one thing here a hospital can apply without software, budget or approval. Where ISMP publishes a rendering for a pair, this page shows ISMP's. Where it does not, the rendering is computed — and the computed rule agrees with ISMP character for character on 8.5% of the 130 pairs ISMP publishes with both sides rendered (11 of them), and capitalises the same region to within one character a side on 30.0%. It produces no rendering at all for 30% of them, and says why in each case.","atc_sentence":"It is also not always right. 4 of the 30 highest-scoring pairs in this project's own candidate set were checked by hand and found spurious — 13.3% — and the cause was the same each time: the two names are variants of one another and one of the two ATC codes is mis-mapped, which makes a duplicate look like a contrast. That audit is a human reading, recorded in this project's journal, not a figure a script produced.","scope_sentence":"Of 161 pairs ISMP has recorded as actually confused and which this project could score, 48 fall below the floor entirely — 29.8%. ISMP records confusions that arise from handwriting, from spoken orders and from where two boxes sit on a shelf, and no comparison of spellings models any of those. A pair absent from your results is not a pair that cannot be confused.","table":[["What this page contains","the screening code and ISMP's published Tall Man renderings (188 pairs). No drug dictionary and no brand-name dataset."],["Composite weights","Levenshtein 0.20, Jaro-Winkler 0.20, Bigram Dice 0.15, Double Metaphone 0.30, Soundex 0.15"],["Reporting floor","0.45 — chosen against how many known pairs it reports, not against how many pairs it yields"],["Hard-negative AUC","0.352 at the 0.45 floor this page screens at, 0.004 at 0.90"],["Survey","22 returned · 20 excluded · alpha 0.217 over 2 raters · underpowered"],["Tall Man agreement with ISMP","8.5% exact, 11 of 130"],["The register this inverts","60,706 pairs over 187,900 names at floor 0.9, from run cb093ae"],["Clinical standing","none — never used in a clinical setting, no institutional approval"]],"tallman_agreement_percent":"8.5%"},"build":{"git_sha":"d2ec2b4","git_dirty":false,"frozen":true,"line":"Built from commit d2ec2b4 · figures from run d2ec2b4 · this page makes no network request and stores nothing."}};
+window.LASA_FORMULARY.configure(window.LASA_FORMULARY_CONFIG);
+
+</script>
+<script>
+/*
+ * The page. (FORMULARY_TOOL.md A1, A3, A4, A5)
+ *
+ * Everything that decides anything is in `web/lasa-formulary.js`; this file
+ * reads files, renders what came back, and builds the two printed artefacts.
+ * The split is what lets the harness check the pair count in the rendered
+ * page against the pair count in the CSV export -- two quantities meeting,
+ * rather than either being compared to a number written down in a test.
+ *
+ * Two things here are load-bearing rather than presentational.
+ *
+ * **The printed pages are real elements.** A4 requires the caveat on every
+ * page and no pair split across a page break. Left to the browser, both are
+ * properties of a rendering that no test in this project could read. Built as
+ * `.sheet-page` elements with their own caveat and footer, both are
+ * properties of the document.
+ *
+ * **The completeness report is a step, not a note.** A2 says to say what
+ * could not be matched before showing results, because a silently reduced
+ * analysis is this project's oldest failure. So it is a screen the reader
+ * passes through rather than a paragraph under the pairs.
+ */
+(function () {
+  'use strict';
+
+  var F = window.LASA_FORMULARY;
+  var X = window.LASA_XLSX;
+  var CONFIG = window.LASA_FORMULARY_CONFIG;
+
+  var state = {
+    rows: null,
+    origin: null,
+    detection: null,
+    mapping: null,
+    result: null,
+    sort: 'score',
+    previous: null,
+    diff: null,
+    printMode: null,
+    seconds: null,
+  };
+
+  function $(id) { return document.getElementById(id); }
+
+  function text(node, value) { node.textContent = value; return node; }
+
+  function element(tag, className, value) {
+    var node = document.createElement(tag);
+    if (className) node.className = className;
+    if (value !== undefined && value !== null) node.textContent = String(value);
+    return node;
+  }
+
+  function number(value) {
+    return String(value).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  }
+
+  var STEPS = ['step-input', 'step-mapping', 'step-working', 'step-completeness',
+               'step-results'];
+
+  function step(name) {
+    STEPS.forEach(function (id) {
+      $(id).classList.toggle('hidden', id !== name);
+    });
+  }
+
+  /* ================================================================ input */
+
+  var EXAMPLE = [
+    'Product name,Ingredient,Manufacturer,Storage location,ATC code',
+    'CHLORPROPAMIDE 250 TAB,chlorpropamide,Pfizer,Shelf C1,A10BB02',
+    'CHLORPROMAZINE 25 TAB,chlorpromazine,Sun Pharma,Shelf C1,N05AA01',
+    'HYDRALAZINE 25MG TAB,hydralazine,Cipla,Shelf D4,C02DB02',
+    'HYDROXYZINE 25MG SYRUP,hydroxyzine,Sun Pharma,Shelf E2,N05BB01',
+    'GLYCOMET 500 TABLET,metformin,USV,Shelf A1,A10BA02',
+    'GLYCOMET SR 500 TABLET,metformin,USV,Shelf A1,A10BA02',
+    'ATENOLOL 50MG TAB,atenolol,Cipla,Shelf B2,C07AB03',
+    'CARVEDILOL 6.25MG TAB,carvedilol,Cipla,Shelf B2,C07AG02',
+    'CLOBAZAM 10MG TAB,clobazam,Sun Pharma,Shelf F1,N05BA09',
+    'CLONAZEPAM 0.5MG TAB,clonazepam,Sun Pharma,Shelf F1,N03AE01',
+    'VINBLASTINE 10MG INJ,vinblastine,Cipla,Cold room,L01CA01',
+    'VINCRISTINE 1MG INJ,vincristine,Cipla,Cold room,L01CA02',
+  ].join('\n');
+
+  function problem(id, message) {
+    text($(id), message || '');
+  }
+
+  function acceptRows(rows, origin) {
+    problem('input-problem', '');
+    if (!rows || !rows.length) {
+      problem('input-problem', 'That file has no rows in it.');
+      return;
+    }
+    if (rows.length > CONFIG.max_rows) {
+      // A1: above the limit, say so and stop rather than degrading.
+      problem('input-problem',
+        'That list has ' + number(rows.length) + ' rows. This tool screens up '
+        + 'to ' + number(CONFIG.max_rows) + ', because every pair of names is '
+        + 'compared and the work grows as the square of the list. Split the '
+        + 'formulary — by ward, or by storage area — and screen each part.');
+      return;
+    }
+    state.rows = rows;
+    state.origin = origin;
+    state.detection = F.detectColumns(rows);
+    state.mapping = Object.assign({}, state.detection.mapping);
+    renderMapping();
+    step('step-mapping');
+  }
+
+  function readFile(file) {
+    problem('input-problem', 'Reading ' + file.name + '…');
+    if (/\.xlsx$/i.test(file.name)) {
+      file.arrayBuffer().then(function (buffer) {
+        return X.readXlsx(buffer);
+      }).then(function (workbook) {
+        acceptRows(workbook.rows, file.name
+          + (workbook.sheet ? ' — sheet "' + workbook.sheet + '"' : ''));
+      }).catch(function (error) {
+        problem('input-problem', 'That workbook could not be read: '
+          + error.message);
+      });
+      return;
+    }
+    var reader = new FileReader();
+    reader.onerror = function () {
+      problem('input-problem', 'That file could not be read.');
+    };
+    reader.onload = function () {
+      acceptRows(F.parseText(String(reader.result)).rows, file.name);
+    };
+    reader.readAsText(file);
+  }
+
+  /* ============================================================== mapping */
+
+  function renderMapping() {
+    var detection = state.detection;
+    var header = detection.header;
+    var body = detection.body;
+    text($('mapping-summary'),
+      number(body.length) + ' row' + (body.length === 1 ? '' : 's')
+      + ' from ' + state.origin
+      + (header ? ', with a header row.' : ', with no header row — the first '
+         + 'column is being read as the product name.'));
+
+    var tbody = $('mapping-table').querySelector('tbody');
+    tbody.innerHTML = '';
+    F.FIELDS.forEach(function (field) {
+      var tr = element('tr');
+      tr.appendChild(element('td', null, field.label
+        + (field.required ? ' (required)' : '')));
+
+      var cell = element('td');
+      var select = element('select');
+      select.id = 'map-' + field.key;
+      select.setAttribute('aria-label', field.label + ' column');
+      var none = element('option', null, field.required
+        ? '— choose a column —' : '— not in my file —');
+      none.value = '';
+      select.appendChild(none);
+      var width = body.reduce(function (most, row) {
+        return Math.max(most, row.length);
+      }, header ? header.length : 1);
+      for (var index = 0; index < width; index++) {
+        var option = element('option', null,
+          header && header[index] ? header[index] : 'Column ' + (index + 1));
+        option.value = String(index);
+        if (state.mapping[field.key] === index) option.selected = true;
+        select.appendChild(option);
+      }
+      select.addEventListener('change', function () {
+        var value = select.value === '' ? null : Number(select.value);
+        state.mapping[field.key] = value;
+        renderMappingExample(field.key);
+      });
+      cell.appendChild(select);
+      tr.appendChild(cell);
+
+      var example = element('td', 'mono');
+      example.id = 'example-' + field.key;
+      tr.appendChild(example);
+      tbody.appendChild(tr);
+    });
+    F.FIELDS.forEach(function (field) { renderMappingExample(field.key); });
+    problem('mapping-problem', '');
+  }
+
+  function renderMappingExample(key) {
+    var node = $('example-' + key);
+    if (!node) return;
+    var index = state.mapping[key];
+    if (index === null || index === undefined) { text(node, ''); return; }
+    var first = null;
+    for (var i = 0; i < state.detection.body.length && first === null; i++) {
+      var value = state.detection.body[i][index];
+      if (value !== undefined && String(value).trim()) first = String(value).trim();
+    }
+    text(node, first === null ? '(empty in every row)' : first);
+  }
+
+  /* ================================================================= run */
+
+  function run() {
+    if (state.mapping.name === null || state.mapping.name === undefined) {
+      problem('mapping-problem', 'Choose the column holding the product names.');
+      return;
+    }
+    var items = F.buildItems(state.detection.body, state.mapping);
+    if (!items.length) {
+      problem('mapping-problem', 'That column is empty in every row.');
+      return;
+    }
+    step('step-working');
+    $('progress-bar').style.width = '0%';
+    text($('progress-text'), 'Comparing every pair of ' + number(items.length)
+      + ' names…');
+
+    var started = (window.performance && performance.now) ? performance.now()
+                                                          : Date.now();
+    var run = F.screenGenerator(items, {});
+    function slice() {
+      var startedSlice = Date.now();
+      var step_ = run.next();
+      // Work for about a sixth of a second, then hand the frame back so the
+      // bar moves and the tab answers. A page that freezes for eight seconds
+      // is one a pharmacist reloads halfway through.
+      while (!step_.done && Date.now() - startedSlice < 160) step_ = run.next();
+      if (step_.done) {
+        var now = (window.performance && performance.now) ? performance.now()
+                                                          : Date.now();
+        state.seconds = (now - started) / 1000;
+        state.result = step_.value;
+        state.diff = null;
+        state.previous = null;
+        renderCompleteness();
+        step('step-completeness');
+        return;
+      }
+      var progress = step_.value;
+      var share = Math.round(100 * progress.done / Math.max(1, progress.total));
+      $('progress-bar').style.width = share + '%';
+      text($('progress-text'), number(progress.done) + ' of '
+        + number(progress.total) + ' names compared');
+      setTimeout(slice, 0);
+    }
+    setTimeout(slice, 0);
+  }
+
+  /* ======================================================== completeness */
+
+  var AFFECTED = {
+    ingredient: 'whether a pair is two brands of one molecule',
+    strength: 'nothing — recorded, not used',
+    form: 'the dosage-form fact; without it the form is read from the name',
+    route: 'the route fact; without it the route is read from the form',
+    manufacturer: 'the same-manufacturer fact, and whether a pair is one '
+      + 'product listed twice',
+    location: 'the shared-storage fact, and sorting by storage area',
+    atc: 'the body-system facts; nothing infers an ATC code here',
+  };
+
+  function renderCompleteness() {
+    var report = state.result.completeness;
+    var counts = state.result.counts;
+    text($('completeness-lead'),
+      number(counts.rows) + ' rows read, ' + number(counts.usable)
+      + ' usable names, ' + number(counts.compared) + ' pairs compared in '
+      + state.seconds.toFixed(1) + ' seconds.'
+      + (report.unnormalisable
+          ? ' ' + number(report.unnormalisable) + ' rows normalised to nothing '
+            + 'and were not compared.' : '')
+      + (report.duplicate_normalised
+          ? ' ' + number(report.duplicate_normalised) + ' names are duplicates '
+            + 'of another row once strengths, forms and packaging words are '
+            + 'removed.' : ''));
+
+    var tbody = $('completeness-table').querySelector('tbody');
+    tbody.innerHTML = '';
+    Object.keys(report.fields).forEach(function (key) {
+      var field = report.fields[key];
+      var tr = element('tr');
+      tr.appendChild(element('td', null, field.label));
+      tr.appendChild(element('td', 'num n', number(field.present)));
+      tr.appendChild(element('td', 'num n', number(field.absent)));
+      tr.appendChild(element('td', 'muted', AFFECTED[key] || ''));
+      tbody.appendChild(tr);
+    });
+  }
+
+  /* ============================================================== results */
+
+  function sortPairs(pairs) {
+    var sorted = pairs.slice();
+    if (state.sort === 'name') {
+      sorted.sort(function (a, b) {
+        return a.name_a < b.name_a ? -1 : (a.name_a > b.name_a ? 1 : 0);
+      });
+    } else if (state.sort === 'location') {
+      sorted.sort(function (a, b) {
+        var shareA = sharesLocation(a) ? 0 : 1, shareB = sharesLocation(b) ? 0 : 1;
+        if (shareA !== shareB) return shareA - shareB;
+        return b.composite - a.composite;
+      });
+    } else {
+      sorted.sort(function (a, b) { return b.composite - a.composite; });
+    }
+    return sorted;
+  }
+
+  function sharesLocation(pair) {
+    return pair.chips.some(function (chip) { return chip.kind === 'location'; });
+  }
+
+  var SECTION_TITLES = {
+    ranked: 'Different products whose names score as similar',
+    same_ingredient: 'Both names carry the same active ingredient',
+    modifier_only: 'The names differ only by a strength, form or packaging word',
+    brand_variant: 'One name is a brand extension of the other',
+    near_duplicate: 'The same product listed twice',
+  };
+
+  var SECTION_NOTES = {
+    ranked: 'This is the section the screen is for. Every pair here is two '
+      + 'different products on your shelves whose names a string screen '
+      + 'scores as similar.',
+    same_ingredient: 'Kept apart from the ranked pairs rather than mixed into '
+      + 'them: a patient given one instead of the other still receives the '
+      + 'shared drug.',
+    modifier_only: 'A string screen cannot tell a release modifier apart from '
+      + 'a different product. These are a real observation and a different '
+      + 'one.',
+    brand_variant: 'Different products in one brand family, named by suffix. '
+      + 'There are enough of them to fill the top of a ranking on their own.',
+    near_duplicate: 'Same ingredient and same manufacturer — most likely one '
+      + 'product recorded twice in your list rather than a look-alike pair.',
+  };
+
+  function renderResults() {
+    var result = state.result;
+    var counts = result.counts;
+    text($('results-lead'),
+      number(counts.pairs) + ' pair' + (counts.pairs === 1 ? '' : 's')
+      + ' scored at or above ' + result.floor.toFixed(2) + ', of '
+      + number(counts.compared) + ' compared. ' + number(counts.ranked)
+      + ' of them are in the first section below.');
+
+    var host = $('sections');
+    host.innerHTML = '';
+    result.section_names.forEach(function (name) {
+      var pairs = sortPairs(result.sections[name]);
+      var details = element('details');
+      details.className = 'section';
+      details.setAttribute('data-section', name);
+      if (name === 'ranked') details.open = true;
+      var summary = element('summary', null,
+        SECTION_TITLES[name] + ' — ' + number(pairs.length));
+      details.appendChild(summary);
+      var note = element('p', 'muted', SECTION_NOTES[name]);
+      note.style.fontSize = 'var(--t-sm)';
+      details.appendChild(note);
+      if (!pairs.length) {
+        details.appendChild(element('p', 'meta', 'None in this formulary.'));
+      }
+      pairs.forEach(function (pair) { details.appendChild(renderPair(pair)); });
+      host.appendChild(details);
+    });
+  }
+
+  function renderTallMan(pair, host) {
+    var tallman = pair.tallman;
+    if (tallman.source === 'none') {
+      var reason = element('p', 'no-rendering',
+        'No Tall Man rendering: ' + tallman.reason + '.');
+      host.appendChild(reason);
+      host.appendChild(plainNames(pair));
+      return;
+    }
+    var scroll = element('div', 'tallman-scroll');
+    var block = element('div', 'tallman');
+    block.appendChild(element('div', null, tallman.a));
+    block.appendChild(element('div', null, tallman.b));
+    scroll.appendChild(block);
+    host.appendChild(scroll);
+    var source = element('p', 'rendering-source');
+    if (tallman.source === 'ismp') {
+      source.textContent = 'Rendering published by ISMP. '
+        + (tallman.a_is_rendering && tallman.b_is_rendering
+            ? 'Both names appear on its Tall Man list.'
+            : 'Only the capitalised name appears on its Tall Man list; the '
+              + 'other is printed as ISMP prints it.');
+    } else {
+      source.textContent = 'Computed rendering, not a published one. '
+        + CONFIG.figures.tallman_sentence;
+    }
+    host.appendChild(source);
+  }
+
+  function plainNames(pair) {
+    var scroll = element('div', 'tallman-scroll');
+    var block = element('div', 'tallman');
+    block.appendChild(element('div', null, pair.name_a));
+    block.appendChild(element('div', null, pair.name_b));
+    scroll.appendChild(block);
+    return scroll;
+  }
+
+  function renderChips(pair) {
+    var host = element('div', 'chips');
+    pair.chips.forEach(function (chip) {
+      var node = element('span', 'chip');
+      node.appendChild(document.createTextNode(chip.text));
+      if (chip.source === 'inferred') {
+        node.appendChild(document.createTextNode(' '));
+        node.appendChild(element('span', 'inferred', '(inferred)'));
+      }
+      if (chip.detail) {
+        node.appendChild(document.createTextNode(' '));
+        node.appendChild(element('span', 'inferred', chip.detail));
+      }
+      host.appendChild(node);
+    });
+    return host;
+  }
+
+  function renderPair(pair) {
+    var host = element('div', 'pair');
+    host.setAttribute('data-pair-id', String(pair.id));
+    host.appendChild(element('p', 'pair-id', 'Pair ' + pair.id));
+    renderTallMan(pair, host);
+    host.appendChild(renderChips(pair));
+
+    var details = element('details');
+    details.appendChild(element('summary', null, 'Details'));
+
+    var names = element('p', 'meta',
+      'As written in your file: ' + pair.raw_a + '  ·  ' + pair.raw_b);
+    details.appendChild(names);
+
+    details.appendChild(element('p', 'meta',
+      'What the composite added — every weight positive, which is what makes '
+      + 'it a sum rather than a judgement.'));
+    CONFIG.metric_names.forEach(function (metric) {
+      details.appendChild(contributionRow(
+        CONFIG.metric_labels[metric], pair[metric],
+        pair[metric] * CONFIG.weights[metric], CONFIG.max_contribution));
+    });
+    details.appendChild(element('p', 'meta',
+      'Composite ' + pair.composite.toFixed(3) + ' — the weighted sum above, '
+      + 'divided by the weights. Section: ' + pair.section.replace(/_/g, ' ') + '.'));
+
+    /* §10 — the project's central finding, made visible. Fit the same five
+       metrics to labelled data and four of the five coefficients come out
+       negative, so most of these bars point left. The tool does not rank on
+       this model and says so; showing it is what makes the composite above a
+       stated choice rather than a concealed one. */
+    var fitted = fittedContributions(pair);
+    details.appendChild(element('p', 'meta',
+      'What a model fitted to labelled data says about the same five numbers. '
+      + 'This page does not rank on it.'));
+    CONFIG.metric_names.forEach(function (metric, index) {
+      details.appendChild(contributionRow(
+        CONFIG.metric_labels[metric], pair[metric],
+        fitted.contributions[index], fitted.largest));
+    });
+    details.appendChild(element('p', 'meta',
+      CONFIG.figures.inversion_short));
+    host.appendChild(details);
+    return host;
+  }
+
+  //: `(x - mean) / scale` then times the coefficient — the same arithmetic
+  //: the name checker does, on the same six numbers, so the two pages cannot
+  //: come to disagree about one model.
+  function fittedContributions(pair) {
+    var model = CONFIG.fitted_model;
+    var contributions = model.metrics.map(function (metric, index) {
+      var standardised = (pair[metric] - model.mean[index]) / model.scale[index];
+      return standardised * model.coef[index];
+    });
+    var largest = contributions.reduce(function (most, value) {
+      return Math.max(most, Math.abs(value));
+    }, 1e-9);
+    return { contributions: contributions, largest: largest };
+  }
+
+  function contributionRow(label, value, contribution, scale) {
+    var row = element('div', 'contribution');
+    row.appendChild(element('span', 'label', label));
+    row.appendChild(element('span', 'value', value.toFixed(3)));
+    var bar = element('div', 'bar');
+    bar.appendChild(element('span', 'axis'));
+    var fill = element('span', contribution < 0 ? 'neg' : 'pos');
+    fill.style.width = Math.min(50, Math.round(
+      50 * Math.abs(contribution) / scale)) + '%';
+    bar.appendChild(fill);
+    row.appendChild(bar);
+    // §2 — colour never carries meaning alone. The sign is written out, and
+    // the bar's direction says it a third time.
+    row.appendChild(element('span', 'value',
+      (contribution < 0 ? '\u2212' : '+') + Math.abs(contribution).toFixed(3)));
+    return row;
+  }
+
+  /* =============================================================== export */
+
+  function download(name, text_, type) {
+    var blob = new Blob([text_], { type: type });
+    var url = URL.createObjectURL(blob);
+    var link = document.createElement('a');
+    link.href = url;
+    link.download = name;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    setTimeout(function () { URL.revokeObjectURL(url); }, 0);
+  }
+
+  function exportCsv() {
+    download('formulary-lasa-pairs.csv', F.toCsv(state.result), 'text/csv');
+  }
+
+  /* ---------------------------------------------------------- what changed */
+
+  function renderDiff() {
+    var host = $('diff');
+    host.innerHTML = '';
+    host.classList.remove('hidden');
+    var diff = state.diff;
+    if (state.previous && state.previous.problem) {
+      host.appendChild(element('p', null,
+        'That file could not be used: ' + state.previous.problem));
+      return;
+    }
+    host.appendChild(element('p', null,
+      'Compared with an export of ' + number(diff.previous_rows) + ' pairs: '
+      + number(diff.new_pairs.length) + ' new, '
+      + number(diff.unchanged_pairs) + ' unchanged, '
+      + number(diff.gone_pairs) + ' no longer present. '
+      + number(diff.new_items.length) + ' names are new to the formulary and '
+      + number(diff.gone_items.length) + ' are gone.'));
+    if (!diff.new_pairs.length) {
+      host.appendChild(element('p', 'meta', 'Nothing new to review.'));
+      return;
+    }
+    var list = element('ul');
+    diff.new_pairs.slice(0, 40).forEach(function (pair) {
+      list.appendChild(element('li', 'mono', pair.name_a + '  /  ' + pair.name_b));
+    });
+    host.appendChild(list);
+    if (diff.new_pairs.length > 40) {
+      host.appendChild(element('p', 'meta',
+        'and ' + number(diff.new_pairs.length - 40) + ' more, all of them in '
+        + 'the CSV export.'));
+    }
+  }
+
+  /* ================================================================ print */
+
+  //: How many blocks fit on one A4 page. Fixed rather than measured: a
+  //: measured fit depends on the font the printer resolves, and a block that
+  //: overflows by one line silently splits a pair across a page break, which
+  //: is the one thing A4 forbids by name.
+  var SHEET_BLOCKS_PER_PAGE = 6;
+  var LABEL_BLOCKS_PER_PAGE = 10;
+
+  var CAVEAT = 'A screening aid, not clinically validated. Every pair listed '
+    + 'here was found by comparing spellings and needs a pharmacist to review '
+    + 'it. Absence from this sheet is not evidence that two names cannot be '
+    + 'confused.';
+
+  function plainChips(pair) {
+    return pair.chips.map(function (chip) {
+      return chip.text + (chip.source === 'inferred' ? ' (inferred)' : '');
+    }).join('   ·   ');
+  }
+
+  function sheetPage(index, total, title, blocks, footerFacts) {
+    var page = element('div', 'sheet-page');
+
+    var head = element('div', 'sheet-head');
+    head.appendChild(element('h2', null, title));
+    page.appendChild(head);
+
+    // A4: on every page. It is in every page element, so this is a fact about
+    // the document rather than a hope about the renderer.
+    page.appendChild(element('div', 'sheet-caveat', CAVEAT));
+
+    var body = element('div', 'sheet-body');
+    blocks.forEach(function (block) { body.appendChild(block); });
+    page.appendChild(body);
+
+    var foot = element('div', 'sheet-foot', footerFacts
+      + '   ·   page ' + (index + 1) + ' of ' + total);
+    page.appendChild(foot);
+    return page;
+  }
+
+  function footerFacts() {
+    var when = new Date();
+    var date = when.getFullYear() + '-'
+      + String(when.getMonth() + 1).padStart(2, '0') + '-'
+      + String(when.getDate()).padStart(2, '0');
+    return date + '   ·   ' + number(state.result.counts.usable)
+      + ' formulary items screened   ·   '
+      + number(state.result.counts.pairs) + ' pairs found';
+  }
+
+  function pairBlock(pair) {
+    var block = element('div', 'sheet-block');
+    var tallman = element('div', 'tallman');
+    if (pair.tallman.source === 'none') {
+      tallman.appendChild(element('div', null, pair.name_a));
+      tallman.appendChild(element('div', null, pair.name_b));
+    } else {
+      tallman.appendChild(element('div', null, pair.tallman.a));
+      tallman.appendChild(element('div', null, pair.tallman.b));
+    }
+    block.appendChild(tallman);
+    var facts = plainChips(pair);
+    var source = pair.tallman.source === 'ismp'
+      ? 'ISMP published rendering'
+      : (pair.tallman.source === 'computed'
+          ? 'computed rendering' : 'no rendering — names as written');
+    block.appendChild(element('p', 'plain-chips',
+      facts ? (facts + '   ·   ' + source) : source));
+    return block;
+  }
+
+  function labelBlock(pair) {
+    var block = element('div', 'label-strip');
+    var tallman = element('div', 'tallman');
+    if (pair.tallman.source === 'none') {
+      tallman.appendChild(element('div', null, pair.name_a));
+      tallman.appendChild(element('div', null, pair.name_b));
+    } else {
+      tallman.appendChild(element('div', null, pair.tallman.a));
+      tallman.appendChild(element('div', null, pair.tallman.b));
+    }
+    block.appendChild(tallman);
+    block.appendChild(element('p', 'label-cut', 'cut here'));
+    return block;
+  }
+
+  function chunk(list, size) {
+    var out = [];
+    for (var i = 0; i < list.length; i += size) out.push(list.slice(i, i + size));
+    return out;
+  }
+
+  function buildPrintable(mode, pairs) {
+    var host = $('printable');
+    host.innerHTML = '';
+    var perPage = mode === 'labels' ? LABEL_BLOCKS_PER_PAGE : SHEET_BLOCKS_PER_PAGE;
+    var groups = chunk(pairs, perPage);
+    if (!groups.length) groups = [[]];
+    var facts = footerFacts();
+    var title = mode === 'labels'
+      ? 'Shelf labels — look-alike pairs in this formulary'
+      : 'Look-alike name pairs in this formulary';
+    groups.forEach(function (group, index) {
+      var blocks = group.map(mode === 'labels' ? labelBlock : pairBlock);
+      host.appendChild(sheetPage(index, groups.length, title, blocks, facts));
+    });
+    host.setAttribute('data-mode', mode);
+    host.setAttribute('data-pages', String(groups.length));
+    host.setAttribute('data-pairs', String(pairs.length));
+    return groups.length;
+  }
+
+  function openPrint(mode) {
+    var pairs = sortPairs(state.result.sections.ranked);
+    var pages = buildPrintable(mode, pairs);
+    state.printMode = mode;
+    document.documentElement.classList.add('preview');
+    // Told before printing, not discovered at the printer. At this project's
+    // evidence-justified floor a large formulary produces a great many pairs,
+    // and that is the operating-point finding rather than a number to tune
+    // away — so the reader is given the page count and the choice.
+    var ok = window.__autoPrint === false ? false : window.confirm(
+      'This will print ' + pages + ' page' + (pages === 1 ? '' : 's') + ' — '
+      + number(pairs.length) + ' pairs from the first section. Continue?');
+    if (ok) window.print();
+    document.documentElement.classList.remove('preview');
+  }
+
+  /* ================================================================ method */
+
+  function renderMethod() {
+    var figures = CONFIG.figures;
+    text($('method-auc'), figures.auc_sentence);
+    text($('method-inversion'), figures.inversion_sentence);
+    text($('method-survey'), figures.survey_sentence);
+    text($('method-tallman'), figures.tallman_sentence_long);
+    text($('method-atc'), figures.atc_sentence);
+    text($('method-scope'), figures.scope_sentence);
+
+    var host = $('method-figures');
+    host.innerHTML = '';
+    figures.table.forEach(function (row) {
+      var line = element('div');
+      line.appendChild(element('dt', null, row[0]));
+      line.appendChild(element('dd', null, row[1]));
+      host.appendChild(line);
+    });
+    text($('build-line'), CONFIG.build.line);
+  }
+
+  function showTab(name) {
+    var screening = name === 'screen';
+    $('view-screen').classList.toggle('hidden', !screening);
+    $('view-method').classList.toggle('hidden', screening);
+    $('tab-screen').setAttribute('aria-selected', String(screening));
+    $('tab-method').setAttribute('aria-selected', String(!screening));
+  }
+
+  /* ================================================================= wire */
+
+  function start() {
+    renderMethod();
+    showTab('screen');
+    step('step-input');
+
+    $('file').addEventListener('change', function (event) {
+      if (event.target.files && event.target.files[0]) readFile(event.target.files[0]);
+    });
+    $('read-paste').addEventListener('click', function () {
+      var value = $('paste').value;
+      if (!value.trim()) {
+        problem('input-problem', 'Paste a list, or choose a file.');
+        return;
+      }
+      acceptRows(F.parseText(value).rows, 'the pasted list');
+    });
+    $('load-example').addEventListener('click', function () {
+      $('paste').value = EXAMPLE;
+      acceptRows(F.parseText(EXAMPLE).rows, 'the example list');
+    });
+    $('back-to-input').addEventListener('click', function () { step('step-input'); });
+    $('run').addEventListener('click', run);
+    $('show-results').addEventListener('click', function () {
+      renderResults();
+      step('step-results');
+    });
+    $('sort').addEventListener('change', function () {
+      state.sort = $('sort').value;
+      renderResults();
+    });
+    $('export-csv').addEventListener('click', exportCsv);
+    $('open-sheet').addEventListener('click', function () { openPrint('sheet'); });
+    $('open-labels').addEventListener('click', function () { openPrint('labels'); });
+    $('previous').addEventListener('change', function (event) {
+      var file = event.target.files && event.target.files[0];
+      if (!file) return;
+      var reader = new FileReader();
+      reader.onload = function () {
+        state.previous = F.parsePreviousExport(String(reader.result));
+        state.diff = state.previous.problem
+          ? null : F.compare(state.result, state.previous);
+        renderDiff();
+      };
+      reader.readAsText(file);
+    });
+    $('tab-screen').addEventListener('click', function () { showTab('screen'); });
+    $('tab-method').addEventListener('click', function () { showTab('method'); });
+    $('banner-method').addEventListener('click', function (event) {
+      event.preventDefault();
+      showTab('method');
+    });
+  }
+
+  /* The harness drives the page through this rather than through synthetic
+     clicks, so a check is never satisfied by a button that moved. */
+  window.__app = {
+    state: state,
+    acceptRows: acceptRows,
+    run: run,
+    renderResults: renderResults,
+    renderCompleteness: renderCompleteness,
+    buildPrintable: buildPrintable,
+    sortPairs: sortPairs,
+    exampleText: function () { return EXAMPLE; },
+    showTab: showTab,
+    step: step,
+    caveat: CAVEAT,
+    footerFacts: function () { return footerFacts(); },
+  };
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', start);
+  } else {
+    start();
+  }
+})();
+
+</script>
+</html>
